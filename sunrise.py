@@ -19,7 +19,7 @@ from pytz import timezone
 import iso8601 as iso 
 from dateutil import parser
 from oauth2client.service_account import ServiceAccountCredentials
-from time_string import am_pm
+from wx_conversions import am_pm
 
 def datestr(dt):
    yr = dt[:4]

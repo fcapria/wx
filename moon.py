@@ -3,7 +3,7 @@
 
 import datetime, requests, json, time, pytz, gspread, ephem
 from oauth2client.service_account import ServiceAccountCredentials
-from time_string import am_pm
+from wx_conversions import am_pm
 from moon_api import apiKey
 
 def get_phase(year,month,day):

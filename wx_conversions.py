@@ -11,7 +11,7 @@ def toMph(kn):
 
 def toMi(nmi):
     mi = nmi *1.151
-    mi = strint((round(mi,0))) + ' MPH'
+    mi = str(int(round(mi,0))) + ' MPH'
     return(mi)
 
 def degrees2dir(d):
@@ -20,3 +20,21 @@ def degrees2dir(d):
             'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
     ix = int((d + 11.25)/22.5)
     return dirs[ix % 16]
+
+def am_pm (string):
+    timeList = string.split(':')
+    hour = timeList[0]
+    minute = timeList[1]
+    hour = int(hour)
+    if hour == 0:
+        hour = 12
+        suffix = 'AM'
+    elif hour < 12:
+        suffix = 'AM'
+    elif hour == 12:
+        suffix = 'PM'
+    else:
+        hour = hour - 12
+        suffix = 'PM'
+    string = str(hour) + ':' + minute + ' ' + suffix
+    return string
