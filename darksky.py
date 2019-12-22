@@ -7,13 +7,7 @@ import requests, json, time, gspread
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from dark_api import APIkey
-
-def degrees2dir(d):
-    # This is highly approximate but good enough for now
-    dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
-            'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
-    ix = int((d + 11.25)/22.5)
-    return dirs[ix % 16]
+from wx_conversions import degrees2dir
 
 darkSky = 'https://api.darksky.net/forecast/'
 
@@ -40,9 +34,9 @@ while not done and (count < 4):
         direction = wx['windBearing']
         compass = degrees2dir(direction)
         roundSpeed = int(round(wx['windSpeed'],0))
-        speed = str(roundSpeed) + ' MPH'
+        speed = str(roundSpeed) + ' mph'
         roundGust = int(round(wx['windGust'],0))
-        gusts = str(roundGust) + ' MPH'
+        gusts = str(roundGust) + ' mph'
         visibility = str(wx['visibility']) + ' miles'
         #ozone = wx['ozone']
         done = True

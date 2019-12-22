@@ -8,6 +8,7 @@ from feedparser import parse
 from bs4 import BeautifulSoup
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+from wx_conversions import toMi, toMph
 
 def mph(kn): # Converts knots to MPH
     speed = round((kn * 1.15),1)
@@ -27,7 +28,8 @@ readings = ['Wind Direction', 'Wind Speed', 'Wind Gust', 'Significant Wave Heigh
     'Dominant Wave Period', 'Atmospheric Pressure', 'Air Temperature', 'Water Temperature',\
     'Visibility']
 
-nauticalUnits = ['Wind Gust', 'Wind Speed', 'Visibility']
+mph = ['Wind Gust', 'Wind Speed']
+mi = 'Visibility'
 
 if len(desc) == 9:
     complete = True
@@ -37,6 +39,25 @@ dataDict = {}
 for i in range (0, len(desc)):
     temp = desc[i].split(': ')
     dataDict[temp[0]] = temp[1]
+
+# Conversions to mph from knots 
+
+for item in mph:
+    try:
+        temp = dataDict[item].split(' ')
+        temp = toMph(float(temp[0]))
+        dataDict[item] = temp
+    except:
+        pass 
+
+# Conversion to miles from nmi
+
+try:
+    temp = dataDict['Visibility'].split(' ')
+    temp = toMi(float(temp[0]))
+    dataDict['Visibility'] = temp
+except:
+    pass 
 
 # create a client to interact with Google Drive API
 scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
@@ -48,7 +69,7 @@ client = gspread.authorize(creds)
 try:
     sheet = client.open('wx04849').sheet1
 except:
-    print ("Oh, crap! Sheet didn't open for penobscot.py")
+    print ("Google Sheet didn't open for penobscot.py")
 
 row = 19
 col = 1

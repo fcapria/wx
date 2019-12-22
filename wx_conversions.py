@@ -6,12 +6,12 @@
 
 def toMph(kn):
     mph = kn * 1.151
-    mph = str(int(round(mph,0))) + ' MPH'
+    mph = str(int(round(mph,0))) + ' mph'
     return mph
 
 def toMi(nmi):
     mi = nmi *1.151
-    mi = str(int(round(mi,0))) + ' MPH'
+    mi = str(int(round(mi,0))) + ' miles'
     return(mi)
 
 def degrees2dir(d):
