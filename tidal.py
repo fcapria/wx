@@ -4,7 +4,7 @@
 Created on Sat, Nov 2 13:34:09 2018
 Revised November 30, 2019 to update Google Sheet as cron job
 Revised December 27, 2019 to clean up display
-@author: Frank Capria
+Frank Capria
 """
 import urllib, json, time, pytz
 import html.parser, gspread, requests
@@ -14,6 +14,7 @@ from time_string import am_pm
 from wx_conversions import round_f
 
 def convert2ticks(s):
+    # Lifted from the web
     return time.mktime(datetime.strptime(s, "%Y-%m-%d %H:%M:%S").timetuple())
 
 def clear(row):
@@ -63,11 +64,11 @@ creds = ServiceAccountCredentials.from_json_keyfile_name('wx_secret.json', scope
 client = gspread.authorize(creds)
 
 try:
-    sheet = client.open('wx04849').sheet1 # Change sheet name
+    sheet = client.open('wx04849').sheet1 
 except:
-    print ("Oh, crap! Sheet didn't open for tidal.py")
+    print ('Sheet did not open when called by tidal.py')
 
-# clear data
+# clear existing data
 row = 29
 clear(row)
 clear(row+1)
