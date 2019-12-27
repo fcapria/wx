@@ -10,8 +10,8 @@ def toMph(kn):
     return mph
 
 def toMi(nmi):
-    mi = nmi *1.151
-    mi = str(int(round(mi,0))) + ' miles'
+    mi = nmi * 1.151
+    mi = str(round(mi,1)) + ' miles'
     return(mi)
 
 def degrees2dir(d):
@@ -38,3 +38,16 @@ def am_pm (string):
         suffix = 'PM'
     string = str(hour) + ':' + minute + ' ' + suffix
     return string
+
+def firstWord(string):
+    string = string.split(' ')
+    string = string[0]
+    return string
+
+def round_f(fTemp):
+    temp = fTemp.split('°')
+    temp = temp[0]
+    temp = round(float(temp),0)
+    temp = int(temp)
+    temp = str(temp + '°F')
+    return temp

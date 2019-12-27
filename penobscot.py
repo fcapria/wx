@@ -8,7 +8,7 @@ from feedparser import parse
 from bs4 import BeautifulSoup
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-from wx_conversions import toMi, toMph
+from wx_conversions import toMi, toMph, firstWord, round_f
 
 def mph(kn): # Converts knots to MPH
     speed = round((kn * 1.15),1)
@@ -30,6 +30,9 @@ readings = ['Wind Direction', 'Wind Speed', 'Wind Gust', 'Significant Wave Heigh
 
 mph = ['Wind Gust', 'Wind Speed']
 mi = 'Visibility'
+
+lengthy = ['Wind Direction', 'Atmospheric Pressure', 'Air Temperature', 'Water Temperature']
+temps = [lengthy[2], lengthy[3]]
 
 if len(desc) == 9:
     complete = True
@@ -58,6 +61,24 @@ try:
     dataDict['Visibility'] = temp
 except:
     pass 
+
+# Stripping parentherticals, etc.
+for item in lengthy:
+    try:
+        dataDict[item] = firstWord(dataDict[item])
+    except:
+        pass
+
+try:
+    dataDict['Atmospheric Pressure'] = dataDict['Atmospheric Pressure'] + ' in'
+except:
+    pass
+
+for item in temps:
+    try:
+        dataDict[item] = round_f(dataDict[item])
+    except:
+        pass
 
 # create a client to interact with Google Drive API
 scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']

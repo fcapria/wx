@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sat, Nov 2 13:34:09 2018
-Revised November 30, 2019 to update Google Sheet as cfron job
+Revised November 30, 2019 to update Google Sheet as cron job
+Revised December 27, 2019 to clean up display
 @author: Frank Capria
 """
 import urllib, json, time, pytz
@@ -10,6 +11,7 @@ import html.parser, gspread, requests
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from time_string import am_pm
+from wx_conversions import round_f
 
 def convert2ticks(s):
     return time.mktime(datetime.strptime(s, "%Y-%m-%d %H:%M:%S").timetuple())
@@ -23,6 +25,11 @@ def cleanTime(string):
     temp = string.split(' ')
     string = am_pm(temp[1])
     return(string)
+
+def round_1(n):
+    n = round(float(n),1)
+    n = str(n)
+    return n
     
 station = 8415490 #-- Rockland, ME 
 name = 'Frank.Capria'  # Leave quotes
@@ -58,7 +65,7 @@ client = gspread.authorize(creds)
 try:
     sheet = client.open('wx04849').sheet1 # Change sheet name
 except:
-    print ("Oh, crap! Sheet didn't open for penobscot.py")
+    print ("Oh, crap! Sheet didn't open for tidal.py")
 
 # clear data
 row = 29
@@ -80,30 +87,30 @@ for i in range (0,j):
         first2 = values[i].get('t')
         first2 = cleanTime(first2)
         if nextEvent == 'L':
-            first1 = 'Next low tide of ' + values[i].get('v')
+            first1 = 'Next low tide of ' + round_1(values[i].get('v')) + ' ft'
             sheet.update_cell(row,1,first1)
             sheet.update_cell(row,2,first2)
             try:
-                second1 = 'Followed by high tide of ' + values[i+1].get('v')
+                second1 = 'Next high tide of ' + round_1(values[i+1].get('v')) + ' ft'
                 second2 = cleanTime(values[i+1].get('t'))
                 sheet.update_cell(row + 1,1,second1)
                 sheet.update_cell(row + 1,2,second2)
             except:
-                second1 = 'Previous high tide of ' + values[i-1].get('v')
+                second1 = 'Prev. high tide of ' + round_1(values[i-1].get('v')) + ' ft'
                 second2 = cleanTime(values[i-1].get('t'))
                 sheet.update_cell(row + 1,1,second1)
                 sheet.update_cell(row + 1,2,second2)
         else:
-            first1 = 'Next high tide of ' + values[i].get('v')
+            first1 = 'Next high tide of ' + round_1(values[i].get('v')) + ' ft'
             sheet.update_cell(row,1,first1)
             sheet.update_cell(row,2,first2)
             try:
-                second1 = 'Followed by low tide of ' + values[i+1].get('v')
+                second1 = 'Next low tide of ' + round_1(values[i+1].get('v')) + ' ft'
                 second2 = cleanTime(values[i+1].get('t'))
                 sheet.update_cell(row + 1,1,second1)
                 sheet.update_cell(row + 1,2,second2)
             except:
-                second1 = 'Previous low tide of ' + values[i-1].get('v')
+                second1 = 'Prev. low tide of ' + round_1(values[i-1].get('v')) + ' ft'
                 second2 = cleanTime(values[i-1].get('t'))
                 sheet.update_cell(row + 1,1,second1)
                 sheet.update_cell(row + 1,2,second2)
@@ -111,7 +118,7 @@ for i in range (0,j):
     elif i == (j - 1):
         sheet.update_cell(row,1,'Tide data unavailable')
         break
-sheet.update_cell(row,5,'Source: Rockland Station 8415490')
+sheet.update_cell(row,5,'Source: Rockland Sta 8415490')
 sheet.update_cell(row+1,5,'Called by: tidal.py')   
 print('Tide data updated successfully')
 
