@@ -27,17 +27,17 @@ while not done and (count < 4):
         wx = dataJSON['currently']
         summary = wx['summary']
         temp = int(round(wx['temperature'],0))
-        temp = str(temp) + ' F'
-        dewPt = str(int(round(wx['dewPoint'],0))) + ' F'
+        temp = str(temp) + '°F'
+        dewPt = str(int(round(wx['dewPoint'],0))) + '°F'
         humidity = str(int(round(wx['humidity'] * 100,0))) + '%'
-        feelsLike = str(int(round(wx['apparentTemperature'],0))) + ' F'
+        feelsLike = str(int(round(wx['apparentTemperature'],0))) + '°F'
         direction = wx['windBearing']
         compass = degrees2dir(direction)
         roundSpeed = int(round(wx['windSpeed'],0))
         speed = str(roundSpeed) + ' mph'
         roundGust = int(round(wx['windGust'],0))
         gusts = str(roundGust) + ' mph'
-        visibility = str(wx['visibility']) + ' miles'
+        visibility = str(wx['visibility']) + ' mi'
         #ozone = wx['ozone']
         done = True
     else:
