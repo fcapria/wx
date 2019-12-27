@@ -37,8 +37,9 @@ while not done and (count < 4):
         speed = str(roundSpeed) + ' mph'
         roundGust = int(round(wx['windGust'],0))
         gusts = str(roundGust) + ' mph'
-        visibility = str(wx['visibility']) + ' mi'
-        #ozone = wx['ozone']
+        visibility = round(wx['visibility'],1)
+        visibility = str(visibility) + ' mi'
+        #ozone = wx['ozone']    
         done = True
     else:
         time.sleep(120)
