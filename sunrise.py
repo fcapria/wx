@@ -90,7 +90,7 @@ client = gspread.authorize(creds)
 try:
     sheet = client.open('wx04849').sheet1
 except:
-    print ('Oh, crap! Google Sheet did not open.')
+    print ('Google Sheet did not open.')
 sheet.update_cell(1,1,currentDt)
 row = 3
 col = 2
