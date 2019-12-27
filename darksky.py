@@ -3,20 +3,16 @@
 
 # Dark Sky calls
 
-import requests, json, csv, time, gspread
+import requests, json, time, gspread
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from dark_api import APIkey
-
-def degrees2dir(d):
-    #note: this is highly approximate...
-    dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
-            'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
-    ix = int((d + 11.25)/22.5)
-    return dirs[ix % 16]
+from wx_conversions import degrees2dir
 
 darkSky = 'https://api.darksky.net/forecast/'
+
 # Define APIkey in dark_api.py and store in same directory as this script
+
 nbroLoc = '42.3305976,-71.6352203'
 lincLoc = '/44.4278389,-69.0088705' 
 excludes = '?exclude=flags,minutely,hourly,daily'
@@ -37,8 +33,10 @@ while not done and (count < 4):
         feelsLike = str(int(round(wx['apparentTemperature'],0))) + ' F'
         direction = wx['windBearing']
         compass = degrees2dir(direction)
-        speed = wx['windSpeed']
-        gusts = wx['windGust']
+        roundSpeed = int(round(wx['windSpeed'],0))
+        speed = str(roundSpeed) + ' mph'
+        roundGust = int(round(wx['windGust'],0))
+        gusts = str(roundGust) + ' mph'
         visibility = str(wx['visibility']) + ' miles'
         #ozone = wx['ozone']
         done = True
