@@ -10,8 +10,8 @@ def toMph(kn):
     return mph
 
 def toMi(nmi):
-    mi = nmi *1.151
-    mi = str(int(round(mi,0))) + ' miles'
+    mi = nmi * 1.151
+    mi = str(round(mi,1)) + ' miles'
     return(mi)
 
 def degrees2dir(d):
