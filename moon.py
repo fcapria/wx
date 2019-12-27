@@ -13,8 +13,9 @@ def get_phase(year,month,day):
     # Ephem stores its date numbers as floating points, which the following uses
     # to conveniently extract the percent time between one new moon and the next
     # This corresponds (somewhat roughly) to the phase of the moon.
+    # Lifted from a tutorial. I would like to credit the author, but lost the link
 
-    #Use Year, Month, Day as arguments
+    # Use Year, Month, Day as arguments
    
     date = ephem.Date(datetime.date(year,month,day))
 
@@ -23,9 +24,8 @@ def get_phase(year,month,day):
 
     lunation=(date-pnm)/(nnm-pnm)
 
-    # Note that there is a ephem.Moon().phase() command, but this returns the
-    # percentage of the moon which is illuminated, can't differentiate between 
-    # waxing and waning.
+    # There is a ephem.Moon().phase() command, but it can't differentiate 
+    # between waxing and waning.
 
     return lunation
 
