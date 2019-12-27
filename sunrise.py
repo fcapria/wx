@@ -6,10 +6,8 @@ Frank Capria
 November 8, 2019
 v 1.0  - Sunrise and sunset information pulled from sunrise-sunset.org
          Writes date, surise, sunset, and day length to Google sheet
-November 27, 2019
+December 27, 2019
 v 1.01 - Moved timestamp and added source information to sheet
-
-
 
 Hard coded for Lincolnville, ME
 """
