@@ -38,3 +38,16 @@ def am_pm (string):
         suffix = 'PM'
     string = str(hour) + ':' + minute + ' ' + suffix
     return string
+
+def firstWord(string):
+    string = string.split(' ')
+    string = string[0]
+    return string
+
+def round_f(fTemp):
+    temp = fTemp.split('°')
+    temp = temp[0]
+    temp = round(float(temp),0)
+    temp = int(temp)
+    temp = str(temp + '°F')
+    return temp
