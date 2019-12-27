@@ -16,7 +16,7 @@ def get_phase(year,month,day):
 
     #Use Year, Month, Day as arguments
    
-    date=ephem.Date(datetime.date(year,month,day))
+    date = ephem.Date(datetime.date(year,month,day))
 
     nnm = ephem.next_new_moon(date)
     pnm = ephem.previous_new_moon(date)
