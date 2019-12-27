@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Penobscot buoy weather calls 
+# Would prefer a method that returns a JSON
 
 import gspread
 from feedparser import parse

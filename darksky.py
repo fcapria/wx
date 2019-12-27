@@ -56,7 +56,7 @@ if done:
     try:
         sheet = client.open('wx04849').sheet1
     except:
-        print ("Oh, crap! Sheet didn't open")
+        print ("Sheet didn't open when called by darksky.py")
     
     row = 9
     col = 2
