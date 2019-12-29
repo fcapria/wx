@@ -55,6 +55,7 @@ if done:
 
     # Find a workbook by name and open the first sheet
     # Make sure you use the right name here.
+    
     try:
         sheet = client.open('wx04849').sheet1
     except:
@@ -90,8 +91,10 @@ if done:
     rightNow = datetime.now()
     tm = int(rightNow.strftime("%H%M"))
     dt = int(rightNow.strftime("%Y%m%d"))
-    # Add code here to only use tope of the hour reading 
+    # Add code here to only use top of the hour reading 
     # Or procrastinate and grab one reading per hour when calculating averages
+    # Or procrasintate further and assume averafges contain no duplicates 
+    #   and are good enough <-- CHOSEN
 
     # Use floating point temp reading
     db.insert({'date': dt, 'time': tm, 'temp': tempFl})
