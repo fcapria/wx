@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# December 30, 2019
+# Frank Capria 
+
 # Yesterday's high, low and average temperatures
 
 import gspread
 from tinydb import TinyDB, Query
 from oauth2client.service_account import ServiceAccountCredentials 
 from wx_conversions import today_int
+from datetime import datetime
 
 # Open db and pull yesterday's data
 
@@ -36,17 +40,17 @@ try:
     # See https://stackoverflow.com/questions/33570749/python-gspread-library-only-writes-to-worksheet-labeled-sheet1
 except:
     print ("Sheet didn't open when called by yesterday.py")
-    
 
 suffix = '°F'
 highStr = str(result['high']) + suffix
 lowStr = str(result['low']) + suffix
 avgStr = str(result['avg']) + suffix
-
+# Write to Google Sheet
 sheet.update_cell(2,2,highStr)
 sheet.update_cell(3,2,lowStr)
 sheet.update_cell(4,2,avgStr)
 
-# Write to Google Sheet
+stamp = str(datetime.now())
+sheet.update_cell(2,3,stamp)
 
 print("Yesterday's values updated.")
