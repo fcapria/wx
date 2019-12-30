@@ -10,3 +10,10 @@ time_string.pyc
 ._wx_conversions.py
 .DS_Store
 ._penobscot.py
+dark_api.pyc
+dark_api.py
+db.json
+moon_api.py
+moon_api.pyc
+sunlight.json
+wx_secret.json
