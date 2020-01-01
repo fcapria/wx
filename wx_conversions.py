@@ -56,3 +56,15 @@ def round_f(fTemp):
     temp = int(temp)
     fTemp = str(temp + '°F')
     return fTemp
+
+def today_int():
+    from datetime import datetime
+    currently = datetime.now()
+    today = int(currently.strftime('%Y%m%d'))
+    return today
+
+def yesterday_int():
+    from datetime import datetime, timedelta
+    yesterday = int(datetime.strftime(datetime.now() - timedelta(1), '%Y%m%d'))
+    return yesterday
+    
