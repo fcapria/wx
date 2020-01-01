@@ -8,11 +8,12 @@
 # is complete.
 
 import json, gspread
-from datetime import datetime
+from datetime import datetime, timedelta
 from oauth2client.service_account import ServiceAccountCredentials 
 from datetime import datetime
 from tinydb import TinyDB, Query, where
 from statistics import mean
+from wx_conversions import today_int, yesterday_int
 
 def up_to_date(yesterday):
     archive = TinyDB('archive.json')
@@ -29,14 +30,15 @@ def calc_yesterday(yesterday):
     temps = []
     Date = Query()
     result = db.search(Date.date == yesterday)
+    
     for item in result:
         temps.append(item['temp'])
     db.close()
-    high = round(max(temps),1)
-    low = round(min(temps),1)
-    avg = round(mean(temps),1)
+    yesterHigh = round(max(temps),1)
+    yesterLow = round(min(temps),1)
+    yesterAvg = round(mean(temps),1)
     archive = TinyDB('archive.json')    
-    archive.insert({'date': yesterday, 'high': high, 'low': low, 'avg': avg})
+    archive.insert({'date': yesterday, 'high': yesterHigh, 'low': yesterLow, 'avg': yesterAvg})
 
 def make_str(n):
     suffix = '°F'
@@ -45,8 +47,8 @@ def make_str(n):
 
 # Get today's date as an integer
 currently = datetime.now()
-today = int(currently.strftime('%Y%m%d'))
-yesterday = today - 1
+today = today_int()
+yesterday = yesterday_int()
 
 current = up_to_date(yesterday)
 if not current:
