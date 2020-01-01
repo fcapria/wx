@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# December 30, 2019
+# January 1, 2020
 # Frank Capria 
 
-# Yesterday's high, low and average temperatures
+"""
+Yesterday's high, low and average temperatures
 
+This script is designed to be run every day shortly after midnight. 
+If it fails to run, hi_low_avg.py will catch the error next time it runs
+The intent is to update yesterday data only as needed.
+
+"""
 import gspread
 from tinydb import TinyDB, Query
 from oauth2client.service_account import ServiceAccountCredentials 
-from wx_conversions import today_int
+from wx_conversions import today_int, yesterday_int
 from datetime import datetime
 
 # Open db and pull yesterday's data
@@ -18,7 +24,7 @@ from datetime import datetime
 # Date is stored as integer YYYYMMDD
 # Pull max, min and mean from archive
 
-yesterday = today_int() - 1
+yesterday = yesterday_int()
 archive = TinyDB('archive.json')
 Date = Query()
 result = archive.search(Date.date == yesterday)
