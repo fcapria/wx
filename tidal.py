@@ -6,12 +6,12 @@ Revised November 30, 2019 to update Google Sheet as cron job
 Revised December 27, 2019 to clean up display
 Frank Capria
 """
-import urllib, json, time, pytz
-import html.parser, gspread, requests
+import urllib, json, time, pytz, gspread, requests
+# import html.parser, gspread, requests
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-from time_string import am_pm
-from wx_conversions import round_f
+# from time_string import am_pm
+from wx_conversions import round_f, am_pm
 
 def convert2ticks(s):
     # Lifted from the web
