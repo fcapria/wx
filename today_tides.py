@@ -70,7 +70,6 @@ now = time.time()
 today = today_int()
 
 j = len(values)
-print(values[0])
 
 for i in range( j - 1, -1, -1) :
     di = values[i]
@@ -89,8 +88,6 @@ for i in range( j - 1, -1, -1) :
 # Instructions for getting credentials to update Google Sheet at:
 # https://towardsdatascience.com/accessing-google-spreadsheet-data-using-python-90a5bc214fd2
 # Create your own wx_secret.json file
-
-
 
 if len(values) > 0: #Only run if we have data
 
@@ -115,7 +112,6 @@ if len(values) > 0: #Only run if we have data
         sheet.update_cell(dataRow,1,col1)
         sheet.update_cell(dataRow,2,col2)
         dataRow += 1
-        print (col1, col2)  
 
     stamp = str(datetime.now())
     sheet.update_cell(STARTROW,4,stamp)
