@@ -9,24 +9,13 @@ from feedparser import parse
 from bs4 import BeautifulSoup
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-from wx_conversions import toMi, toMph, firstWord, round_f
+from wx_conversions import toMi, toMph, firstWord, round_f, alt_temp
 
 STARTROW = 19
 
 def mph(kn): # Converts knots to MPH
     speed = round((kn * 1.15),1)
     return speed
-
-def alt_temp():
-   
-    url = ' https://www.seatemperature.org/north-america/united-states/camden.htm'
-    response = requests.get(url)
-
-    soup = BeautifulSoup(response.text, 'html.parser')
-    data = soup.find('div', id='sea-temperature')
-    data = str(data).split(' / ')
-    data = str(data[1]).split('\n')
-    return data[0]    
 
 data = parse('https://www.ndbc.noaa.gov/data/latest_obs/44033.rss')
 entries = data['entries'][0]
@@ -134,6 +123,7 @@ if waterTempMissing:
         sheet.update_cell(STARTROW+offset, 4, 'Camden Harbor')
     except:
         pass
+
 if complete:
     print('Complete nautical data retireved.')
 else:
