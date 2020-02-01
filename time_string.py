@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+# This file is obsolete. It's functions have been added to wx_conversions.py
+
 def am_pm (string):
     timeList = string.split(':')
     hour = timeList[0]

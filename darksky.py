@@ -4,6 +4,7 @@
 # Dark Sky calls
 
 import requests, json, time, gspread
+from tinydb import TinyDB, Query
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from dark_api import APIkey
@@ -27,6 +28,7 @@ while not done and (count < 4):
         wx = dataJSON['currently']
         summary = wx['summary']
         temp = int(round(wx['temperature'],0))
+        tempFl = float(wx['temperature'])
         temp = str(temp) + '°F'
         dewPt = str(int(round(wx['dewPoint'],0))) + '°F'
         humidity = str(int(round(wx['humidity'] * 100,0))) + '%'
@@ -53,6 +55,7 @@ if done:
 
     # Find a workbook by name and open the first sheet
     # Make sure you use the right name here.
+    
     try:
         sheet = client.open('wx04849').sheet1
     except:
@@ -81,6 +84,20 @@ if done:
     sheet.update_cell(row,col,gusts)
     row += 1
     sheet.update_cell(row,col,visibility)
+
+    # Open the database connection
+    db = TinyDB('db.json')
+    # Grab the current date and time separately as an integer
+    rightNow = datetime.now()
+    tm = int(rightNow.strftime("%H%M"))
+    dt = int(rightNow.strftime("%Y%m%d"))
+    # Add code here to only use top of the hour reading 
+    # Or procrastinate and grab one reading per hour when calculating averages
+    # Or procrasintate further and assume averafges contain no duplicates 
+    #   and are good enough <-- CHOSEN
+
+    # Use floating point temp reading
+    db.insert({'date': dt, 'time': tm, 'temp': tempFl})
 
     print ('Successfully updated current weather ',stamp)
     
