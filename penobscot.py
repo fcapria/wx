@@ -4,16 +4,29 @@
 # Penobscot buoy weather calls 
 # Would prefer a method that returns a JSON
 
-import gspread
+import gspread, requests
 from feedparser import parse
 from bs4 import BeautifulSoup
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from wx_conversions import toMi, toMph, firstWord, round_f
 
+STARTROW = 19
+
 def mph(kn): # Converts knots to MPH
     speed = round((kn * 1.15),1)
     return speed
+
+def alt_temp():
+   
+    url = ' https://www.seatemperature.org/north-america/united-states/camden.htm'
+    response = requests.get(url)
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    data = soup.find('div', id='sea-temperature')
+    data = str(data).split(' / ')
+    data = str(data[1]).split('\n')
+    return data[0]    
 
 data = parse('https://www.ndbc.noaa.gov/data/latest_obs/44033.rss')
 entries = data['entries'][0]
@@ -93,21 +106,34 @@ try:
 except:
     print ("Google Sheet didn't open for penobscot.py")
 
-row = 19
+row = STARTROW
 col = 1
 
 stamp = str(datetime.now())
 sheet.update_cell(row,4,stamp)
 sheet.update_cell(row,5,'Source: Penobscot Bay Buoy 44033')
 sheet.update_cell(row+1,5,'Called by: penobscot.py')
+
+waterTempMissing = False
+
 for i in range(0,9): 
     sheet.update_cell(row,1,readings[i])
     try:
         sheet.update_cell(row,2,dataDict[readings[i]])
     except:
         sheet.update_cell(row,2,'Missing')
-    row += 1
-
+        if readings[i] == 'Water Temperature':
+            waterTempMissing = True  
+            offset = i   
+    row = row + 1
+sheet.update_cell(STARTROW+offset, 4, ' ')
+if waterTempMissing:
+    try:
+        newTemp = alt_temp()
+        sheet.update_cell(STARTROW + offset,2,newTemp)
+        sheet.update_cell(STARTROW+offset, 4, 'Camden Harbor')
+    except:
+        pass
 if complete:
     print('Complete nautical data retireved.')
 else:
