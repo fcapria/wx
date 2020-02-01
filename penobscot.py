@@ -3,6 +3,7 @@
 
 # Penobscot buoy weather calls 
 # Would prefer a method that returns a JSON
+# Feb 1, 2020 - Checks for Camden Harbor water temp is Penobscot is missing
 
 import gspread, requests
 from feedparser import parse
