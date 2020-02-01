@@ -3,13 +3,16 @@
 
 # Penobscot buoy weather calls 
 # Would prefer a method that returns a JSON
+# Feb 1, 2020 - Checks for Camden Harbor water temp is Penobscot is missing
 
-import gspread
+import gspread, requests
 from feedparser import parse
 from bs4 import BeautifulSoup
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-from wx_conversions import toMi, toMph, firstWord, round_f
+from wx_conversions import toMi, toMph, firstWord, round_f, alt_temp
+
+STARTROW = 19
 
 def mph(kn): # Converts knots to MPH
     speed = round((kn * 1.15),1)
@@ -93,20 +96,34 @@ try:
 except:
     print ("Google Sheet didn't open for penobscot.py")
 
-row = 19
+row = STARTROW
 col = 1
 
 stamp = str(datetime.now())
 sheet.update_cell(row,4,stamp)
 sheet.update_cell(row,5,'Source: Penobscot Bay Buoy 44033')
 sheet.update_cell(row+1,5,'Called by: penobscot.py')
+
+waterTempMissing = False
+
 for i in range(0,9): 
     sheet.update_cell(row,1,readings[i])
     try:
         sheet.update_cell(row,2,dataDict[readings[i]])
     except:
         sheet.update_cell(row,2,'Missing')
-    row += 1
+        if readings[i] == 'Water Temperature':
+            waterTempMissing = True  
+            offset = i   
+    row = row + 1
+sheet.update_cell(STARTROW+offset, 4, ' ')
+if waterTempMissing:
+    try:
+        newTemp = alt_temp()
+        sheet.update_cell(STARTROW + offset,2,newTemp)
+        sheet.update_cell(STARTROW+offset, 4, 'Camden Harbor')
+    except:
+        pass
 
 if complete:
     print('Complete nautical data retireved.')
