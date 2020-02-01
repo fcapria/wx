@@ -68,7 +68,12 @@ def yesterday_int():
     yesterday = int(datetime.strftime(datetime.now() - timedelta(1), '%Y%m%d'))
     return yesterday
 
-def alt_temp():
+"""
+First function to scrape a web page for data
+Feb 1, 2020
+"""
+
+def alt_temp(): 
     import requests
     from bs4 import BeautifulSoup
 
