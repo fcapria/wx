@@ -67,4 +67,17 @@ def yesterday_int():
     from datetime import datetime, timedelta
     yesterday = int(datetime.strftime(datetime.now() - timedelta(1), '%Y%m%d'))
     return yesterday
+
+def alt_temp():
+    import requests
+    from bs4 import BeautifulSoup
+
+    url = ' https://www.seatemperature.org/north-america/united-states/camden.htm'
+    response = requests.get(url)
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    data = soup.find('div', id='sea-temperature')
+    data = str(data).split(' / ')
+    data = str(data[1]).split('\n')
+    return data[0]    
     
