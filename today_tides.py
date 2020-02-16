@@ -71,7 +71,7 @@ today = today_int()
 
 j = len(values)
 
-for i in range( j - 1, -1, -1) :
+for i in range( j - 1, -1, -1): 
     di = values[i]
     tideEvent = values[i].get('t')
     t = datetime.strptime(tideEvent, "%Y-%m-%d %H:%M")
@@ -99,10 +99,8 @@ if len(values) > 0: #Only run if we have data
         sheet = client.open('wx04849').sheet1 
     except:
         print ('Sheet did not open when called by daily_tides.py')
-        
-
-  
-    for rowNum in range(STARTROW,STARTROW+5):
+          
+    for rowNum in range(STARTROW,STARTROW+4):
         clear(rowNum)
     
     dataRow = STARTROW
@@ -116,7 +114,7 @@ if len(values) > 0: #Only run if we have data
     stamp = str(datetime.now())
     sheet.update_cell(STARTROW,4,stamp)
     sheet.update_cell(STARTROW,5,'Source: Rockland Sta 8415490')
-    sheet.update_cell(STARTROW+1,5,'Called by: tidal.py')   
+    sheet.update_cell(STARTROW+1,5,'Called by: today_tides.py')   
     print('Tide data updated successfully')
 
 
