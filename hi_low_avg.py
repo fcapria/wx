@@ -14,6 +14,9 @@ from tinydb import TinyDB, Query, where
 from statistics import mean
 from wx_conversions import today_int, yesterday_int
 
+ERR = 'No Data'
+SUFFIX = '°F'
+
 def up_to_date(yesterday):
     archive = TinyDB('archive.json')
     current = False
@@ -29,21 +32,25 @@ def calc_yesterday(yesterday):
     temps = []
     Date = Query()
     result = db.search(Date.date == yesterday)
-    
-    for item in result:
-        temps.append(item['temp'])
-    db.close()
-    yesterHigh = round(max(temps),1)
-    yesterLow = round(min(temps),1)
-    yesterAvg = round(mean(temps),1)
-    archive = TinyDB('archive.json')    
-    archive.insert({'date': yesterday, 'high': yesterHigh, 'low': yesterLow, 'avg': yesterAvg})
+    if len(result) > 0:
+        for item in result:
+            temps.append(item['temp'])
+        db.close()
+        yesterHigh = round(max(temps),1)
+        yesterLow = round(min(temps),1)
+        yesterAvg = round(mean(temps),1)
+        archive = TinyDB('archive.json')    
+        archive.insert({'date': yesterday, 'high': yesterHigh, 'low': yesterLow, 'avg': yesterAvg})
+    else:
+        yesterHigh = ERR
+        yesterLow = ERR
+        yesterAvg = ERR
     return yesterHigh, yesterLow, yesterAvg
 
-
 def make_str(n):
-    SUFFIX = '°F'
-    n = str(n) + SUFFIX
+    if n != ERR:
+        
+        n = str(n) + SUFFIX
     return n
 
 # Get today's date as an integer
@@ -69,13 +76,21 @@ except:
 
 stamp = str(datetime.now()) # Timestamp for updates
 
-current = up_to_date(yesterday)
-if not current:
-    yesterdayResults = calc_yesterday(yesterday)
-    sheet.update_cell(2,2,make_str(yesterdayResults[0]))
-    sheet.update_cell(3,2,make_str(yesterdayResults[1]))
-    sheet.update_cell(4,2,make_str(yesterdayResults[2]))
-    sheet.update_cell(2,3,stamp)
+if not up_to_date(yesterday):
+    try:
+        yesterdayResults = calc_yesterday(yesterday)
+        sheet.update_cell(2,2,make_str(yesterdayResults[0]))
+        sheet.update_cell(3,2,make_str(yesterdayResults[1]))
+        sheet.update_cell(4,2,make_str(yesterdayResults[2]))
+        sheet.update_cell(2,3,stamp)
+        print("passed")
+        print(yesterdayResults[0],yesterdayResults[1],yesterdayResults[2])
+    except:
+        sheet.update_cell(2,2,'ERR')
+        sheet.update_cell(3,2,'ERR')
+        sheet.update_cell(4,2,'ERR')
+        sheet.update_cell(2,3,stamp)
+        print("failed")
 
 # Query for temps from today and load into list
 db = TinyDB('db.json')
@@ -87,18 +102,20 @@ for item in db:
 # Calculate high, low and average for today
 # Mean is from statistics
 # Min and max are built into Python
-
-todayHigh = round(max(todayTemps),1)
-todayLow = round(min(todayTemps),1)
-todayAvg = round(mean(todayTemps),1)
-
+try:
+    todayHigh = round(max(todayTemps),1)
+    todayLow = round(min(todayTemps),1)
+    todayAvg = round(mean(todayTemps),1)
+    sheet.update_cell(6,2,make_str(todayHigh))
+    sheet.update_cell(7,2,make_str(todayLow))
+    sheet.update_cell(8,2,make_str(todayAvg))
+except:
+    sheet.update_cell(6,2,ERR)
+    sheet.update_cell(7,2,ERR)
+    sheet.update_cell(8,2,ERR)
+    
 # Publish today's data only
     
-sheet.update_cell(6,2,make_str(todayHigh))
-sheet.update_cell(7,2,make_str(todayLow))
-sheet.update_cell(8,2,make_str(todayAvg))
-
-
 sheet.update_cell(6,3,stamp)
 
 print("Today's high, low and averages updated.")
