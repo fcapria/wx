@@ -21,10 +21,10 @@ import iso8601 as iso
 from dateutil import parser
 from oauth2client.service_account import ServiceAccountCredentials
 from tinydb import TinyDB, Query
-from wx_conversions import am_pm
+from wx_conversions import am_pm, getSun
 
 def time_string_to_minutes(t):
-    print(t)
+    # print(t)
     tString = t.split(':')
     hrs = int(tString[0])
     mns = int(tString[1])
@@ -58,21 +58,6 @@ def length(seconds):
     mnString = str(minutes) + ' minutes'
     daylight = hrString + mnString
     return daylight
-
-def getSun(loc):  #need try/excepts for errors
-
-    base = 'https://api.sunrise-sunset.org/json?'
-    time = '&formatted=0'
-    url = base + loc + time
-    
-    try:
-        response = requests.get(url)
-    except requests.exceptions.RequestException as ex:
-        print(ex)
-    
-    allData = json.loads(response.text)
-    results = allData['results']   
-    return(results)
   
 # body begins
 
