@@ -68,7 +68,10 @@ def yesterday_int():
     yesterday = int(datetime.strftime(datetime.now() - timedelta(1), '%Y%m%d'))
     return yesterday
 
-def getSun(loc):  # need try/excepts for errors
+def getSun(loc):  
+    
+    # Migrated April 25, 2020
+
     import requests, json
     base = 'https://api.sunrise-sunset.org/json?'
     time = '&formatted=0'
@@ -84,7 +87,7 @@ def getSun(loc):  # need try/excepts for errors
     return(results)
 
 """
-First function to scrape a web page for data
+Function to scrape a web page for data
 Feb 1, 2020
 """
 
