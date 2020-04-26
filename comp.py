@@ -8,54 +8,11 @@ Based on sunrise.py
 github.com/fcapria/wx
 """
 
-import requests, json, calendar, gspread
 from datetime import datetime
-from pytz import timezone
-import iso8601 as iso 
-from dateutil import parser
+import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from tinydb import TinyDB, Query
 from wx_conversions import getSun
-
-# Now that these functions are in two scripts, they need to be
-# placed in wx_conversions
-
-def time_string_to_minutes(t):
-    #print(t)
-    tString = t.split(':')
-    hrs = int(tString[0])
-    mns = int(tString[1])
-    daylightMins = (hrs*60) + mns
-    return daylightMins
-
-def mins_to_hours_and_mins(i):
-    hrs = i / 60
-    mins = i % 60
-    string = str(hrs) + ' hours' + str(mins) + ' minutes'
-    return string
-
-def datestr(dt):
-   yr = dt[:4]
-   mo = calendar.month_name[int(dt[5:7])]
-   date = dt[8:10]
-   dtStr = mo + ' ' + date + ', ' + yr
-   return(dtStr)
-
-def eastern(dt):
-    dateObj = iso.parse_date(dt)
-    dateEastern = dateObj.astimezone(timezone('US/Eastern'))
-    return(dateEastern)
-
-def length(seconds):
-    seconds = int(seconds)
-    hours = (seconds // 3600)
-    minutes = ((seconds / 3600) - hours) * 60
-    minutes = int(minutes // 1)
-    hrString = str(hours) + ' hours '
-    mnString = str(minutes) + ' minutes'
-    daylight = hrString + mnString
-    return daylight
-  
+ 
 # body begins
 
 mckay = "lat=44.31&lng=-69.05"
@@ -76,8 +33,8 @@ if dif < 0:
     dif = dif * -1
 
 minDif = str((lengthMe - lengthMa) // 60)
-secMod = str((lengthMe - lengthMa) % 60)
-difString = str(minDif + ' min ' + secMod + ' sec')
+secDif = str((lengthMe - lengthMa) % 60)
+difString = str(minDif + ' min ' + secDif + ' sec')
 
 # use stored credentials for client of the Google Drive API
 scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
