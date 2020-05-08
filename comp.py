@@ -59,6 +59,6 @@ sheet.update_cell(34,2,difString)
 
 stamp = datetime.now()
 sheet.update_cell(34,4,str(stamp))
-sheet.update_cell(34,5,'Daily by comp.py')
+sheet.update_cell(34,5,'Called daily by comp.py')
 
 print('Updated daylight comparison ',str(stamp))
