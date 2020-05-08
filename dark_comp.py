@@ -4,7 +4,6 @@
 # Dark Sky calls
 
 import requests, json, time, gspread
-from tinydb import TinyDB, Query
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from dark_api import APIkey
@@ -58,6 +57,7 @@ try:
     sheet = client.open('wx04849').sheet1
     stamp = str(datetime.now())
     sheet.update_cell(35,4,str(stamp))
+    sheet.update_cell(35,5,'Called by dark_comp.py')
     sheet.update_cell(35,1,greaterTemp)
     if not equalTemp:
         sheet.update_cell(35,2,absStr)
