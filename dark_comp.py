@@ -17,7 +17,7 @@ def gen_state(cur,last):
         msg = 'Rising'
     else:
         msg = 'Falling'
-    print(msg)
+    #print(msg)
     return msg
 
 darkSky = 'https://api.darksky.net/forecast/'
@@ -88,6 +88,6 @@ try:
     cell = sheet.find('Current temperature')
     sheet.update_cell(cell.row,cell.col+3,tempStatus)
     sheet.update_cell(cell.row+5,cell.col+3,windStatus)
-
+    print('Comparisons complete',stamp)
 except:
     print("Sheet didn't open for dark_comp.py")
