@@ -9,6 +9,7 @@ Store the public IP address
 
 import gspread
 from requests import get
+from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 
 ip = get('https://api.ipify.org').text
@@ -28,4 +29,8 @@ except:
 
 if ok:
     sheet.update_acell('b3',ip)
+    stamp = str(datetime.now())
+    sheet.update_acell('c3',stamp)
+    print(stamp)
+
 
