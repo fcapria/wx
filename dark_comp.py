@@ -52,8 +52,9 @@ try:
     else:
         greaterTemp = 'ME and MA are the same temperature.'
         equalTemp = True
-except:
-    greaterTemp = 'Unable to calculate temperatures'
+except requests.exceptions as ex:
+    greaterTemp = 'Unable to calculate temperature'
+    print(ex)
     
 # use creds to create a client to interact with the Google Drive API
 scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
@@ -74,8 +75,8 @@ try:
     recent.update_acell('b1',currentTemp)
     recent.update_acell('b2',currentWind)
 
-except:
-    print('Failed to open recent data')
+except gspread.exceptions.APIError as ex:
+    print('Failed to open recent data. ',ex)
 
 try:
     sheet = client.open('wx04849').sheet1
@@ -89,5 +90,5 @@ try:
     sheet.update_cell(cell.row,cell.col+3,tempStatus)
     sheet.update_cell(cell.row+5,cell.col+3,windStatus)
     print('Comparisons complete',stamp)
-except:
-    print("Sheet didn't open for dark_comp.py")
+except gspread.exceptions.APIError as ex:
+    print("Sheet didn't open for dark_comp.py ",ex)
