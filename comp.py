@@ -47,8 +47,8 @@ client = gspread.authorize(creds)
 try:
     sheet = client.open('wx04849').get_worksheet(0)
     # 0 is the index of sheert in workbook
-except:
-    print ('Google Sheet did not open.')
+except gspread.exceptions.APIError as ex:
+    print(ex)
 
 if meLonger:
     sheet.update_cell(34,1,'Daylight in ME greater by')
