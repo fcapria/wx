@@ -41,7 +41,7 @@ while not done and (count < 4):
         gusts = str(roundGust) + ' mph'
         visibility = round(wx['visibility'],1)
         visibility = str(visibility) + ' mi'
-        #ozone = wx['ozone']    
+        ozone = wx['ozone']    
         done = True
     else:
         time.sleep(120)
@@ -58,8 +58,9 @@ if done:
     
     try:
         sheet = client.open('wx04849').sheet1
-    except:
+    except gspread.exceptions.APIError as ex:
         print ("Sheet didn't open when called by darksky.py")
+        print(ex)
     
     row = 9
     col = 2
