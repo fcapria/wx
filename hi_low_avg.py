@@ -20,8 +20,8 @@ SUFFIX = '°F'
 def up_to_date(yesterday):
     archive = TinyDB('archive.json')
     current = False
-    Date = Query()
-    result = archive.search(Date.date == yesterday)
+    dt = Query()
+    result = archive.search(dt.date == yesterday)
     if len(result) > 0:
         current = True
     archive.close()
@@ -30,26 +30,25 @@ def up_to_date(yesterday):
 def calc_yesterday(yesterday):
     db = TinyDB('db.json')
     temps = []
-    Date = Query()
-    result = db.search(Date.date == yesterday)
+    dt = Query()
+    result = db.search(dt.date == yesterday)
     if len(result) > 0:
         for item in result:
             temps.append(item['temp'])
         db.close()
-        yesterHigh = round(max(temps),1)
-        yesterLow = round(min(temps),1)
-        yesterAvg = round(mean(temps),1)
+        yHigh = round(max(temps),1)
+        yLow = round(min(temps),1)
+        yAvg = round(mean(temps),1)
         archive = TinyDB('archive.json')    
-        archive.insert({'date': yesterday, 'high': yesterHigh, 'low': yesterLow, 'avg': yesterAvg})
+        archive.insert({'date': yesterday, 'high': yHigh, 'low': yLow, 'avg': yAvg})
     else:
-        yesterHigh = ERR
-        yesterLow = ERR
-        yesterAvg = ERR
-    return yesterHigh, yesterLow, yesterAvg
+        yHigh = ERR
+        yLow = ERR
+        yAvg = ERR
+    return yHigh, yLow, yAvg
 
 def make_str(n):
     if n != ERR:
-        
         n = str(n) + SUFFIX
     return n
 
@@ -64,16 +63,17 @@ creds = ServiceAccountCredentials.from_json_keyfile_name('wx_secret.json', scope
 client = gspread.authorize(creds)
 
 # Access workbook by name and open the appropriate tab
-
+sheetErr = False
 try:
     sheet = client.open('wx04849').get_worksheet(1)
    
     # 1 is the index value of Sheet2
     # Google doesn't document how to access Sheet2
     # https://stackoverflow.com/questions/33570749/python-gspread-library-only-writes-to-worksheet-labeled-sheet1
-except:
+except gspread.exceptions.APIError as ex:
+    print(ex)
     print ("Sheet didn't open when called by hi_low_avg.py")
-
+    sheetErr = True
 stamp = str(datetime.now()) # Timestamp for updates
 
 if not up_to_date(yesterday):
@@ -85,12 +85,12 @@ if not up_to_date(yesterday):
         sheet.update_cell(2,3,stamp)
         print("passed")
         print(yesterdayResults[0],yesterdayResults[1],yesterdayResults[2])
-    except:
+    except AttributeError as ex:
         sheet.update_cell(2,2,'ERR')
         sheet.update_cell(3,2,'ERR')
         sheet.update_cell(4,2,'ERR')
         sheet.update_cell(2,3,stamp)
-        print("failed")
+        print(ex)
 
 # Query for temps from today and load into list
 db = TinyDB('db.json')
@@ -102,20 +102,24 @@ for item in db:
 # Calculate high, low and average for today
 # Mean is from statistics
 # Min and max are built into Python
-try:
-    todayHigh = round(max(todayTemps),1)
-    todayLow = round(min(todayTemps),1)
-    todayAvg = round(mean(todayTemps),1)
-    sheet.update_cell(6,2,make_str(todayHigh))
-    sheet.update_cell(7,2,make_str(todayLow))
-    sheet.update_cell(8,2,make_str(todayAvg))
-except:
-    sheet.update_cell(6,2,ERR)
-    sheet.update_cell(7,2,ERR)
-    sheet.update_cell(8,2,ERR)
-    
-# Publish today's data only
-    
-sheet.update_cell(6,3,stamp)
 
-print("Today's high, low and averages updated.")
+if not sheetErr:
+    try:
+        todayHigh = round(max(todayTemps),1)
+        todayLow = round(min(todayTemps),1)
+        todayAvg = round(mean(todayTemps),1)
+        sheet.update_cell(6,2,make_str(todayHigh))
+        sheet.update_cell(7,2,make_str(todayLow))
+        sheet.update_cell(8,2,make_str(todayAvg))
+    except ValueError as ex:
+        sheet.update_cell(6,2,ERR)
+        sheet.update_cell(7,2,ERR)
+        sheet.update_cell(8,2,ERR)
+        
+    # Publish today's data only
+        
+    sheet.update_cell(6,3,stamp)
+    print("Today's high, low and averages updated.")
+    print(db)
+else:
+    print('Databased not updated ',stamp)
