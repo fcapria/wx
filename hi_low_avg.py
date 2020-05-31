@@ -20,8 +20,8 @@ SUFFIX = '°F'
 def up_to_date(yesterday):
     archive = TinyDB('archive.json')
     current = False
-    Date = Query()
-    result = archive.search(Date.date == yesterday)
+    dt = Query()
+    result = archive.search(dt.date == yesterday)
     if len(result) > 0:
         current = True
     archive.close()
@@ -30,22 +30,22 @@ def up_to_date(yesterday):
 def calc_yesterday(yesterday):
     db = TinyDB('db.json')
     temps = []
-    Date = Query()
-    result = db.search(Date.date == yesterday)
+    dt = Query()
+    result = db.search(dt.date == yesterday)
     if len(result) > 0:
         for item in result:
             temps.append(item['temp'])
         db.close()
-        yesterHigh = round(max(temps),1)
-        yesterLow = round(min(temps),1)
-        yesterAvg = round(mean(temps),1)
+        high = round(max(temps),1)
+        low = round(min(temps),1)
+        avg = round(mean(temps),1)
         archive = TinyDB('archive.json')    
         archive.insert({'date': yesterday, 'high': yesterHigh, 'low': yesterLow, 'avg': yesterAvg})
     else:
-        yesterHigh = ERR
-        yesterLow = ERR
-        yesterAvg = ERR
-    return yesterHigh, yesterLow, yesterAvg
+        high = ERR
+        low = ERR
+        avg = ERR
+    return high, low, avg
 
 def make_str(n):
     if n != ERR:
