@@ -82,8 +82,11 @@ if not error:
     try:
         client = gspread.authorize(creds)
         sheet = client.open('wx04849').sheet1
-    except:
+    except gspread.exceptions.APIError as ex:
+        print(ex)
         print ("Oh, crap! Sheet didn't open for moon.py")
+        error = True
+if not error:      
     row = 6
     sheet.update_cell(row,1,'Moonrise')
     time12 = am_pm(data['moonrise'])
@@ -105,6 +108,9 @@ if not error:
     phase = define_phase(lunation)
     sheet.update_cell(row,2,phase)
 
-print('moon.py completed')
+    print('moon.py completed without error')
+else:
+    print('moon.py completed with eror(s)')
+
 
 

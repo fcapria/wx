@@ -23,8 +23,8 @@ ok = True
 
 try:
     sheet = client.open('recent04849').sheet1
-except:
-    print ('Google Sheet did not open.')
+except gspread.exceptions.APIError as ex:
+    print ('Google Sheet did not open.', ex)
     ok = False
 
 if ok:
