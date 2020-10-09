@@ -21,19 +21,19 @@ overlock = "lat=42.33&lng=-71.64"
 resultsMa = getSun(overlock)
 
 lengthMe = resultsMe['day_length']
+print('me ',lengthMe/60)
 lengthMa = resultsMa['day_length']
+print('ma ',lengthMa/60)
 
 if lengthMe >= lengthMa:
     meLonger = True
 else:
     meLonger = False
 
-dif = lengthMe - lengthMa
-if dif < 0:
-    dif = dif * -1
+dif = abs(lengthMe - lengthMa)
 
-minDif = str((lengthMe - lengthMa) // 60)
-secDif = str((lengthMe - lengthMa) % 60)
+minDif = str((dif) // 60)
+secDif = str((dif) % 60)
 difString = str(minDif + ' min ' + secDif + ' sec')
 
 # use stored credentials for client of the Google Drive API
