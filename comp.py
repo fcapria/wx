@@ -21,9 +21,8 @@ overlock = "lat=42.33&lng=-71.64"
 resultsMa = getSun(overlock)
 
 lengthMe = resultsMe['day_length']
-print('me ',lengthMe/60)
 lengthMa = resultsMa['day_length']
-print('ma ',lengthMa/60)
+
 
 if lengthMe >= lengthMa:
     meLonger = True
@@ -46,7 +45,7 @@ client = gspread.authorize(creds)
 
 try:
     sheet = client.open('wx04849').get_worksheet(0)
-    # 0 is the index of sheert in workbook
+    # 0 is the index of sheet in workbook
 except gspread.exceptions.APIError as ex:
     print(ex)
 
