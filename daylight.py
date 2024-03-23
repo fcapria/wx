@@ -85,6 +85,7 @@ error = False
 # Get latitude and logitude from sheet
 
 # BODY
+beginning = datetime.now()
 
 # use absolute path to access credentials
 filePath = path.abspath(__file__) # full path of this script
@@ -234,16 +235,16 @@ if MALonger:
     sheet.update_cell(3,3,diffStr)
 else:
     sheet.update_cell(11,3,diffStr)
-sheet.update_cell(5,1,str(todayDate))
-sheet.update_cell(13,1,str(todayDate))
+#sheet.update_cell(5,1,str(todayDate))
+#sheet.update_cell(13,1,str(todayDate))
 sheet.update_cell(5,2,sunrise)
 sheet.update_cell(13,2,meSunrise)
 sheet.update_cell(5,3,sunset)
 sheet.update_cell(13,3,meSunset)
 sheet.update_cell(5,4,dayLength)
 sheet.update_cell(13,4,meDayLen)
-sheet.update_cell(6,1,str(yesterdayDate))
-sheet.update_cell(14,1,str(yesterdayDate))
+#sheet.update_cell(6,1,str(yesterdayDate))
+#sheet.update_cell(14,1,str(yesterdayDate))
 sheet.update_cell(6,2,yesterdaySunrise)
 sheet.update_cell(14,2,meYesterdayRise)
 sheet.update_cell(6,3,yesterdaySunset)
@@ -252,8 +253,8 @@ sheet.update_cell(6,4,yesterdayLength)
 sheet.update_cell(14,4,meYesterdayLen)
 sheet.update_cell(14,5,meYesDeltaStr)
 sheet.update_cell(6,5,yesterdayDeltaStr)
-sheet.update_cell(7,1,str(tomorrowDate))
-sheet.update_cell(15,1,str(tomorrowDate))
+#sheet.update_cell(7,1,str(tomorrowDate))
+#sheet.update_cell(15,1,str(tomorrowDate))
 sheet.update_cell(7,2,tomorrowSunrise)
 sheet.update_cell(15,2,meTomorrowRise)
 sheet.update_cell(7,3,tomorrowSunset)
@@ -262,6 +263,17 @@ sheet.update_cell(7,4,tomorrowlength)
 sheet.update_cell(15,4,meTomorrowLen)
 sheet.update_cell(7,5,tomorrowDeltaStr)
 sheet.update_cell(15,5,meTomDeltaStr)
+
+# Add time stamp
+now = datetime.now() 
+stamp = "Updated " + now.strftime('%Y-%m-%d %H:%M')
+sheet.update_cell(16,1,stamp)
+start = "Started - " + beginning.strftime('%Y-%m-%d %H:%M:%S')
+
+sheet.update_cell(17,1,start)
+ending = datetime.now()
+end = "Ended - " + ending.strftime('%Y-%m-%d %H:%M:%S')
+sheet.update_cell(18,1,end)
 
 # Close the Google session
 try: 
