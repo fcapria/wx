@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # LIBRARIES
+import logging
 import requests, json, gspread
 from datetime import datetime, timedelta
 from dateutil.parser import parse
@@ -44,28 +45,39 @@ https://api.sunrise-sunset.org/json?lat=36.7201600&lng=-4.4203400&date=2024-01-0
 https://api.sunrise-sunset.org/json?lat=36.7201600&lng=-4.4203400&formatted=0
 """
 
-def solar(latitude,longitude,dt):  
-    base = 'https://api.sunrise-sunset.org/json'
-    loc = '?lat=' + latitude + '&lng=' +longitude
-    suffix = '&formatted=0&date=' 
-    url = base + loc + suffix + dt 
-    print(url)
-    
+def solar(lat, lon, date_str):
+    url = 'https://api.sunrise-sunset.org/json'
+    params = {
+        'lat': lat,
+        'lng': lon,
+        'date': date_str,
+        'formatted': 0
+    }
+
     try:
-        response = requests.get(url)
-    except requests.exceptions.RequestException as ex:
-        print(ex)
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        if data['status'] != 'OK':
+            raise ValueError(f"API error: {data['status']}")
+        return data['results']
     
-    allData = json.loads(response.text)
-    results = allData['results']
-    return(results)
+    except (requests.RequestException, ValueError, KeyError) as e:
+        raise RuntimeError(f"Error retrieving solar data: {e}")
+
 
 # INITIALIZATIONS
-error = False
 
-# Get latitude and logitude from sheet
+# Define log file location (shared across scripts)
+log_path = path.join(path.dirname(path.abspath(__file__)), 'wx04849.log')
+logging.basicConfig(
+    filename=log_path,
+    level=logging.INFO,  # Use DEBUG if you want more detail
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
 
 # BODY
+logging.info("Script:sunlight.py started.")
 
 # use absolute path to access credentials
 filePath = path.abspath(__file__) # full path of this script
@@ -83,56 +95,42 @@ try:
     book = client.open('wx04849')
     sheet = book.worksheet('Sheet1')
 except:
-    print ('Google Sheet did not open.')
-    error = True
-"""
-# Read cells containing lat and long
-try:
-        lat = sheet.range('A2')
-        lat = str(lat[0])
-        lon = sheet.range('B2')
-        lon = str(lon[0])
-except:
-        error = True
-"""
-LAT = '44.279397'
-LON = '-69.007578'
+    logging.error("Google Sheet did not open.")
 
+# Load config
+config_path = path.join(path.dirname(path.abspath(__file__)), 'sunlight_config.json')
+with open(config_path) as f:
+    config = json.load(f)
+    
+LAT = config['latitude']
+LON = config['longitude']
 
 # Get the dates
 todayDate = datetime.today().date()
-yesterdayDate = todayDate - timedelta(days=1)
-tomorrowDate = todayDate + timedelta(days=1)
-
 try:
-    data = solar(LAT,LON,str(todayDate))
-except:
-        error = True
-        print('Error retrieving data from sunrise-sunset.org.')
+    try:
+        data = solar(LAT,LON,str(todayDate))
+    except:
+        logging.error("Failed to retrieve solar data.")
+        raise
 
-sunriseIso = data['sunrise']
-sunrise = eastern(sunriseIso)
-sunrise = ampm(sunrise.strftime('%H:%M:%S'))
+    sunriseIso = data['sunrise']
+    sunrise = eastern(sunriseIso)
+    sunrise = ampm(sunrise.strftime('%H:%M:%S'))
 
-sunsetIso = data['sunset']
-sunset = eastern(sunsetIso)
-sunset = ampm(sunset.strftime('%H:%M:%S'))
-print(sunset)   
-dayLength = daylength(data['day_length'])
+    sunsetIso = data['sunset']
+    sunset = eastern(sunsetIso)
+    sunset = ampm(sunset.strftime('%H:%M:%S'))
+    dayLength = daylength(data['day_length'])
 
-todaySec = int(data['day_length'])
+    todaySec = int(data['day_length'])
+    stamp = str(datetime.now())
 
-sheet.update_cell(1,1,str(todayDate))
-sheet.update_cell(3,2,sunrise)
-sheet.update_cell(4,2,sunset)
-sheet.update_cell(5,2,dayLength)
+    sheet.update(range_name='A1', values=[[str(todayDate)]])
+    sheet.update(range_name='B3:B5', values=[[sunrise], [sunset], [dayLength]])
+    sheet.update(range_name='D3', values=[[stamp]])
 
-stamp = str(datetime.now())
-sheet.update_cell(3,4,stamp)
+    logging.info("Script:sunlight.py completed.")
 
-# Close the Google session
-
-try: 
-    client.session.close()
-except:
-    print ('Session did not close properly')
+except Exception as e:
+    logging.exception("Script:sunlight.py failed during execution.")
