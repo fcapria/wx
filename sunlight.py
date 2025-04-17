@@ -2,42 +2,22 @@
 # -*- coding: utf-8 -*-
 
 # LIBRARIES
-import requests, json, calendar, gspread
+import requests, json, gspread
 from datetime import datetime, timedelta
+from dateutil.parser import parse
 from pytz import timezone
-#from wxfunctions import solar
-import iso8601 as iso 
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 from os import path
-from dateutil.parser import isoparse
 
 # FUNCTIONS
 
 def eastern(dt):
-    dateObj = iso.parse_date(dt)
-    #print(dateObj)
-    dateEastern = dateObj.astimezone(timezone('America/New_York'))
-    return(dateEastern)
+    date_obj = parse(dt)
+    return date_obj.astimezone(timezone('America/New_York'))
 
-def ampm (string):
-    # Converts 24h time to 12h time
-    timeList = string.split(':')
-    hour = timeList[0]
-    minute = timeList[1]
-    second = timeList[2]    
-    hour = int(hour)
-    if hour == 0:
-        hour = 12
-        suffix = ' AM'
-    elif hour < 12:
-        suffix = ' AM'
-    elif hour == 12:
-        suffix = ' PM'
-    else:
-        hour = hour - 12
-        suffix = ' PM'
-    string = str(hour) + ':' + minute + ':' + second + suffix
-    return string
+def ampm(time_string):
+    t = datetime.strptime(time_string, "%H:%M:%S")
+    return t.strftime("%I:%M:%S %p").lstrip("0")
 
 def daylength(seconds):
     hours, remainder = divmod(seconds, 3600)
@@ -93,8 +73,8 @@ dirPath = path.dirname(filePath) # full path of the directory
 jsonFilePath = path.join(dirPath,'wx_secret.json') # absolute json file path
 
 # Use stored credentials for client of the Google Drive API
-scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-creds = ServiceAccountCredentials.from_json_keyfile_name(jsonFilePath, scope)
+scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+creds = Credentials.from_service_account_file(jsonFilePath, scopes=scope)
 client = gspread.authorize(creds)
 
 # Sheet shared with weatherman@weather04849.iam.gserviceaccount.com
