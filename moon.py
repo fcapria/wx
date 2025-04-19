@@ -1,7 +1,7 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import datetime, requests, json, time, pytz, gspread, ephem
+import datetime, requests, json, logging, pytz, gspread, ephem
 from oauth2client.service_account import ServiceAccountCredentials
 from wx_conversions import am_pm
 from moon_api import apiKey
@@ -49,7 +49,18 @@ def define_phase(lunation):
         phase = 'Waning Cresent'
     return phase
 
-# Moonrise and moonset from ipgeolocation.com
+# BODY
+
+# Set log file location
+logPath = path.join(path.dirname(path.abspath(__file__)), 'wx04849.log')
+
+logging.basicConfig(
+    filename=logPath,
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
+
+logging.info("===== Starting moon.py =====")
 
 today = datetime.datetime.now()
 yr = today.strftime('%Y')
@@ -71,8 +82,9 @@ while attempts < 4 and not error:
         response = requests.get(call)
     except requests.exceptions.RequestException as ex:  
         error = True
-        print('Failed to connect successfully to api.ipgeolocation.com')
-        print(ex)
+        logging.error("Failed to connect to ipgeolocation.com")
+        logging.exception(ex)
+
 #Set absolute path
 filePath = path.abspath(__file__) # full path of this script
 dirPath = path.dirname(filePath) # full path of the directory 
@@ -88,7 +100,7 @@ if not error:
         sheet = client.open('wx04849').sheet1
     except gspread.exceptions.APIError as ex:
         print(ex)
-        print ("Oh, crap! Sheet didn't open for moon.py")
+        logging.error("Google Sheet did not open in moon.py")
         error = True
 if not error:      
     row = 6
@@ -112,9 +124,10 @@ if not error:
     phase = define_phase(lunation)
     sheet.update_cell(row,2,phase)
 
-    print('moon.py completed without error')
+    logging.info("===== Finished moon.py successfully =====")
+
 else:
-    print('moon.py completed with eror(s)')
+    logging.warning("===== moon.py completed with errors =====")
 
 
 
