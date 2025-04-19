@@ -81,7 +81,7 @@ logging.basicConfig(
 )
 
 # BODY
-logging.info("===== Starting sunlight2.py =====")
+logging.info("===== Starting sunlight.py =====")
 
 # use absolute path to access credentials
 filePath = path.abspath(__file__) # full path of this script
@@ -102,7 +102,7 @@ except:
     logging.error("Google Sheet did not open.")
 
 # Load config
-config_path = path.join(path.dirname(path.abspath(__file__)), 'sunlight2_config.json')
+config_path = path.join(path.dirname(path.abspath(__file__)), 'sunlight_config.json')
 with open(config_path) as f:
     config = json.load(f)
     
@@ -141,7 +141,7 @@ try:
         sheet.update('D3', [[stamp]])
 
 
-    logging.info("===== Finished sunlight2.py =====")
-    
+    logging.info("===== Finished sunlight.py =====")
+
 except Exception as e:
     logging.exception("Script:sunlight2.py failed during execution.")
