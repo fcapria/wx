@@ -73,6 +73,7 @@ def solar(lat, lon, dateStr):
 
 # Define log file location (shared across scripts)
 log_path = path.join(path.dirname(path.abspath(__file__)), 'wx04849.log')
+
 logging.basicConfig(
     filename=log_path,
     level=logging.INFO,  # Use DEBUG if you want more detail
@@ -80,7 +81,7 @@ logging.basicConfig(
 )
 
 # BODY
-logging.info("Script:sunlight2.py started.")
+logging.info("===== Starting sunlight2.py =====")
 
 # use absolute path to access credentials
 filePath = path.abspath(__file__) # full path of this script
@@ -140,7 +141,7 @@ try:
         sheet.update('D3', [[stamp]])
 
 
-    logging.info("Script:sunlight2.py completed.")
-
+    logging.info("===== Finished sunlight2.py =====")
+    
 except Exception as e:
     logging.exception("Script:sunlight2.py failed during execution.")
