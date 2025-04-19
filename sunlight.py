@@ -4,7 +4,8 @@
 # LIBRARIES
 import logging
 import requests, json, gspread
-from datetime import datetime, timedelta
+from packaging import version
+from datetime import datetime
 from dateutil.parser import parse
 from pytz import timezone
 from google.oauth2.service_account import Credentials
@@ -39,18 +40,20 @@ def mmssdelta(secs):
 
 """
 Example queires to sunrise-sunset.org
+
 https://api.sunrise-sunset.org/json?lat=36.7201600&lng=-4.4203400
 https://api.sunrise-sunset.org/json?lat=36.7201600&lng=-4.4203400&date=today
 https://api.sunrise-sunset.org/json?lat=36.7201600&lng=-4.4203400&date=2024-01-06
 https://api.sunrise-sunset.org/json?lat=36.7201600&lng=-4.4203400&formatted=0
+
 """
 
-def solar(lat, lon, date_str):
+def solar(lat, lon, dateStr):
     url = 'https://api.sunrise-sunset.org/json'
     params = {
         'lat': lat,
         'lng': lon,
-        'date': date_str,
+        'date': dateStr,
         'formatted': 0
     }
 
@@ -77,7 +80,7 @@ logging.basicConfig(
 )
 
 # BODY
-logging.info("Script:sunlight.py started.")
+logging.info("Script:sunlight2.py started.")
 
 # use absolute path to access credentials
 filePath = path.abspath(__file__) # full path of this script
@@ -98,7 +101,7 @@ except:
     logging.error("Google Sheet did not open.")
 
 # Load config
-config_path = path.join(path.dirname(path.abspath(__file__)), 'sunlight_config.json')
+config_path = path.join(path.dirname(path.abspath(__file__)), 'sunlight2_config.json')
 with open(config_path) as f:
     config = json.load(f)
     
@@ -106,7 +109,7 @@ LAT = config['latitude']
 LON = config['longitude']
 
 # Get the dates
-todayDate = datetime.today().date()
+todayDate = datetime.today().strftime('%B %d, %Y')
 try:
     try:
         data = solar(LAT,LON,str(todayDate))
@@ -124,13 +127,20 @@ try:
     dayLength = daylength(data['day_length'])
 
     todaySec = int(data['day_length'])
-    stamp = str(datetime.now())
+    stamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    sheet.update(range_name='A1', values=[[str(todayDate)]])
-    sheet.update(range_name='B3:B5', values=[[sunrise], [sunset], [dayLength]])
-    sheet.update(range_name='D3', values=[[stamp]])
 
-    logging.info("Script:sunlight.py completed.")
+    if version.parse(gspread.__version__) >= version.parse("6.0.0"):
+        sheet.update([[str(todayDate)]], 'A1')
+        sheet.update([[sunrise], [sunset], [dayLength]],'B3:B5')
+        sheet.update([[stamp]],'D3')
+    else:
+        sheet.update('A1', [[str(todayDate)]])
+        sheet.update('B3:B5', [[sunrise], [sunset], [dayLength]])
+        sheet.update('D3', [[stamp]])
+
+
+    logging.info("Script:sunlight2.py completed.")
 
 except Exception as e:
-    logging.exception("Script:sunlight.py failed during execution.")
+    logging.exception("Script:sunlight2.py failed during execution.")
