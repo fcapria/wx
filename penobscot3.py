@@ -1,300 +1,117 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-# Penobscot buoy weather calls
-# Upated 2024-01-05
-# Downloads a text file via HTTPS, eliminating need for RSS parsing
-# If data not available from Penobscot Bay, queries other buoys in the region
-
-# Feb 19, 2024
-# Added data storage to MySQL database for future data display and analysis
-
-import gspread, urllib.request
+import gspread, urllib.request, sys, logging
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from wx_conversions import nm_to_mi, hpa_to_in, ms_to_mph      
 from wx_conversions import compass, m_to_ft, c_to_f         
 from os import path
-
-# Database secrets and config
-import mysql.connector
-from db_secrets import user, pwd, host
-
-buoyCols = ['YYYY','MM','DD','hh','mm','WDIR','WSPD','GST','WVHT','DPD','APD',
-            'MWD','PRES','PTDY','ATMP','WTMP','DEWP','VIS','TIDE']
-config = {
-    'user': user,
-    'password': pwd,
-    'host': host,
-    'database': 'Weather',
-    'port': '3306'  # MySQL default port
-}
-dBaseUp = True
-try:
-    conn = mysql.connector.connect(**config)
-except:
-    print("Unable to connect to database")
-    dBaseUp = False
-
-if conn.is_connected():
-    cursor = conn.cursor()
-# Now ready to add data to database
-
-
-def null_check(colContents):
-    nullFlag = False
-    if colContents == 'MM':
-        nullFlag = True
-    return(nullFlag)
-
-def update(currentDict,row,col,lookup):
-    nullFlagged = null_check(currentDict[lookup])
-    if not nullFlagged:
-        sql = "UPDATE Buoy_Data SET " + str(col) + " = " + str(currentDict[lookup]) + " WHERE ID = " + str(row)
-        #values = (currentDict[col],row)
-        cursor.execute(sql) 
-        conn.commit()
-
-# Inialize a dictionary to map column names in buoy data to column names in BuouyData db
-colMap = {}
-for col in buoyCols:
-    if col != 'mm':
-        colMap[col] = col
-    else:
-        colMap[col] = 'mn'
-
-# buoyNames = {'44033':'Penobscot Bay','MSIM1':'Matinicus Rock','44032':'Central ME Shelf','44034':'Eastern ME Shelf'}
-
-filePath = path.abspath(__file__) # full path of this script
-dirPath = path.dirname(filePath) # full path of the directory 
-jsonFilePath = path.join(dirPath,'wx_secret.json') # absolute json file path
+from wx_util import initLogging 
 
 STARTROW = 19
-offset = 0
+BUOYS = ['44033','MISM1','44032','44034']
 
-buoys = ['44033','MISM1','44032','44034']
-error = False
+def initDict(station, headers):
+    return {'#STN': station, **{key: 'MM' for key in headers[1:]}}
 
-try:
-    with urllib.request.urlopen('https://www.ndbc.noaa.gov/data/latest_obs/latest_obs.txt') as f:
-        allData = f.read().decode("utf-8")
-except:
-    print('Failed to retrieve buoy data.')
-    error = True
+def main():
+    initLogging("penobscot3.py")
 
-# Grab the column headers and place in a list
-lines = allData.split('\n')
-headers = lines[0].split()
+    filePath = path.abspath(__file__)
+    dirPath = path.dirname(filePath)
+    jsonFilePath = path.join(dirPath,'wx_secret.json')
 
-stationsFound = 0
-stationsData = []
-# Iterate through data to grab the station data we want
-for i in range(1,len(lines)-1):
-    words = lines[i].split()
-    if words[0] in buoys:
-        stationsData.append(lines[i])
-        stationsFound += 1
+    try:
+        with urllib.request.urlopen('https://www.ndbc.noaa.gov/data/latest_obs/latest_obs.txt') as f:
+            allData = f.read().decode("utf-8")
+    except Exception as e:
+        logging.exception("Failed to retrieve buoy data.")
+        sys.exit(1)
 
-# Initialize the temp dictionaries 
-penobscotDict = {}
-penobscotDict['#STN'] = '44033'
-for n in range (1,len(headers)):
-    penobscotDict[headers[n]] = 'MM'
-mantinicusDict = {}
-mantinicusDict['#STN'] = 'M'
-for n in range (1,len(headers)):
-    mantinicusDict[headers[n]] = 'MM'
-centralDict = {}
-centralDict['#STN'] = '44032'
-for n in range (1,len(headers)):
-    centralDict[headers[n]] = 'MM'
-easternDict = {}
-easternDict['#STN'] = '44034'
-for n in range (1,len(headers)):
-    easternDict[headers[n]] = 'MM'
+    lines = allData.split('\n')
+    headers = lines[0].split()
 
-# Now fill the dictionaries with good data where available
-for i in range (0,stationsFound):
-    tempList = stationsData[i].split()
-    if tempList[0] == '44032':
-        for x in range (0,len(headers)-1):
-            newKey = headers[x]
-            newVal = tempList[x]
-            centralDict[newKey] = newVal
-        # Insert ROW for 44032 Buoys_Data
-        sql = "INSERT INTO Buoy_Data (STN) VALUES (44032);" 
-        cursor.execute(sql)
-        conn.commit()
-        dbRow = cursor.lastrowid
-        for colName in buoyCols:
-            dbCol = colMap[colName]
-            update(centralDict,dbRow,dbCol,colName)
-    elif tempList[0] == '44033':
-        for x in range (0,len(headers)-1):
-            newKey = headers[x]
-            newVal = tempList[x]
-            penobscotDict[newKey] = newVal
-        if conn.is_connected:            
-            cursor = conn.cursor()
-            # Insert ROW for 44033 Buoys_Data
-            sql = "INSERT INTO Buoy_Data (STN) VALUES (44033);" 
-            cursor.execute(sql)
-            conn.commit()
-            dbRow = cursor.lastrowid
-            for colName in buoyCols:
-                dbCol = colMap[colName]
-                update(penobscotDict,dbRow,dbCol,colName)
-    elif tempList[0] == '44034':
-        for x in range (0,len(headers)-1):
-                newKey = headers[x]
-                newVal = tempList[x]
-                easternDict[newKey] = newVal
-        # Insert ROW for 44034 Buoys_Data
-        sql = "INSERT INTO Buoy_Data (STN) VALUES (44034);" 
-        cursor.execute(sql)
-        conn.commit()
-        dbRow = cursor.lastrowid
-        for colName in buoyCols:
-            dbCol = colMap[colName]
-            update(easternDict,dbRow,dbCol,colName)
-    elif tempList[0] == 'MISM1':
-        for x in range (0,len(headers)-1):
-            newKey = headers[x]
-            newVal = tempList[x]
-            mantinicusDict[newKey] = newVal
-        # Insert ROW for MISM1 Buoys_Data
-        sql = "INSERT INTO Buoy_Data (STN) VALUES ('MISM1');" 
-        cursor.execute(sql)
-        conn.commit()
-        dbRow = cursor.lastrowid
-        for colName in buoyCols:
-            dbCol = colMap[colName]
-            update(mantinicusDict,dbRow,dbCol,colName)
-# Create a master dictionary from Penobscot readings
-masterDict = {}
-for n in range (0,len(headers)):
-    masterDict[headers[n]] = penobscotDict[headers[n]]
-            
-# Dictionary to store data sources of master dictionary
-sourcesDict = {}
-for n in range (0,len(headers)):
-    sourcesDict[headers[n]] = 'Penobscot Bay'
+    penobscotDict = initDict('44033', headers)
+    mantinicusDict = initDict('MISM1', headers)
+    centralDict = initDict('44032', headers)
+    easternDict = initDict('44034', headers)
 
-# Replace missing information where possible
-for item in headers:
-    if masterDict[item] == 'MM':
-        masterDict[item] = mantinicusDict[item]
-        sourcesDict[item] = 'Mantinicus Rock'
-for item in headers:
-    if masterDict[item] == 'MM':
-        masterDict[item] = centralDict[item]
-        sourcesDict[item] = 'Central Shelf'
-for item in headers:
-    if masterDict[item] == 'MM':
-        masterDict[item] = easternDict[item]
-        sourcesDict[item] = 'Eastern Shelf'
+    stationsData = []
+    for line in lines[1:]:
+        parts = line.strip().split()
+        if not parts:
+            continue
+        if parts[0] in BUOYS:
+            stationsData.append(line)
+    logging.info(f"Found {len(stationsData)} matching buoy stations.")
 
-# Lists for conversions needed
-metersSec = ['WSPD','GST',] # meters per second to mph
-centigrade = ['ATMP','WTMP',"DEWP"] # degrees c to f
-nautical =  ['VIS'] #nautical miles to miles
-meters = ['WVHT'] # meters to feet
-hpa = ["PRES","PTDY"] # hPa to inches hg
-direction = ["WDIR"] # convert from degrees to compass
-sec = ["DPD","APD"] # seconds are not converted, 'sec' suffix added
 
-for entry in masterDict:
-    if entry in metersSec and masterDict[entry] != 'MM':
-        masterDict[entry] = ms_to_mph(masterDict[entry])
-    elif entry in centigrade and masterDict[entry] != 'MM':
-        masterDict[entry] = c_to_f(masterDict[entry])
-    elif entry in nautical and masterDict[entry] != 'MM':
-        masterDict[entry] = nm_to_mi(masterDict[entry])
-    elif entry in meters and masterDict[entry] != 'MM':
-        masterDict[entry] = m_to_ft(masterDict[entry])
-    elif entry in hpa and masterDict[entry] != 'MM':
-        masterDict[entry] = hpa_to_in(masterDict[entry])
-    elif entry in direction and masterDict[entry] != 'MM':
-        masterDict[entry] = compass(masterDict[entry])
-    elif entry in sec and masterDict[entry] != 'MM':
-        masterDict[entry] = str(masterDict[entry] + ' sec')
+    for line in stationsData:
+        tempList = line.split()
+        station = tempList[0]
+        targetDict = {
+            '44032': centralDict,
+            '44033': penobscotDict,
+            '44034': easternDict,
+            'MISM1': mantinicusDict
+        }.get(station)
+        if targetDict:
+            for i in range(1, len(headers)):
+                targetDict[headers[i]] = tempList[i]
 
-# Change MM to Missing
-for item in headers:
-    if masterDict[item] == 'MM':
-        masterDict[item] = 'Missing'
+    masterDict = dict(penobscotDict)
+    sourcesDict = {key: 'Penobscot Bay' for key in headers}
 
-# Now write to the spreadsheet
+    for fallbackDict, source in [(mantinicusDict, 'Mantinicus Rock'), (centralDict, 'Central Shelf'), (easternDict, 'Eastern Shelf')]:
+        for key in headers:
+            if masterDict.get(key) == 'MM':
+                masterDict[key] = fallbackDict.get(key)
+                sourcesDict[key] = source
 
-# Create a client to interact with Google Drive API
-scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-creds = ServiceAccountCredentials.from_json_keyfile_name(jsonFilePath, scope)
-client = gspread.authorize(creds)
+    conversions = {
+        'WSPD': ms_to_mph, 'GST': ms_to_mph,
+        'ATMP': c_to_f, 'WTMP': c_to_f, 'DEWP': c_to_f,
+        'VIS': nm_to_mi,
+        'WVHT': m_to_ft,
+        'PRES': hpa_to_in, 'PTDY': hpa_to_in,
+        'WDIR': compass,
+    }
+    secSuffix = {'DPD', 'APD'}
 
-# Find workbook by name and open the first sheet
+    for key, value in masterDict.items():
+        if value != 'MM':
+            if key in conversions:
+                masterDict[key] = conversions[key](value)
+            elif key in secSuffix:
+                masterDict[key] = f"{value} sec"
 
-try:
-    sheet = client.open('wx04849').sheet1
-except:
-    print ("Google Sheet didn't open for penobscot3.py")
-# Should stop if this error is raised. Also should be logged
+    for key in headers:
+        if masterDict[key] == 'MM':
+            masterDict[key] = 'Missing'
 
-row = STARTROW
-col = 1
-station = masterDict['#STN']
+    try:
+        scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+        creds = ServiceAccountCredentials.from_json_keyfile_name(jsonFilePath, scope)
+        client = gspread.authorize(creds)
+        sheet = client.open('wx04849').sheet1
+    except Exception as e:
+        logging.exception("Google Sheet didn't open for penobscot3.py")
+        sys.exit(1)
 
-sheet.update_cell(row,5,station)
-sheet.update_cell(row+1,5,'Called by: penobscot3.py')
+    dataRows = [
+    ['Wind Direction', masterDict['WDIR'], '', sourcesDict['WDIR']],
+    ['Wind Speed', masterDict['WSPD'], '', sourcesDict['WSPD']],
+    ['Wind Gust', masterDict['GST'], '', sourcesDict['GST']],
+    ['Significant Wave Height', masterDict['WVHT'], '', sourcesDict['WVHT']],
+    ['Dominant Wave Period', masterDict['DPD'], '', sourcesDict['DPD']],
+    ['Atmospheric Pressure', masterDict['PRES'], '', sourcesDict['PRES']],
+    ['Air Temperature', masterDict['ATMP'], '', sourcesDict['ATMP']],
+    ['Water Temperature', masterDict['WTMP'], '', sourcesDict['WTMP']],
+    ['Visibility at Sea', masterDict['VIS'], '', sourcesDict['VIS']]
+    ]
 
-# Enter the data into the sheet
-param = 'WDIR'
-sheet.update_cell(row,1,'Wind Direction')
-sheet.update_cell(row,2,masterDict[param])
-sheet.update_cell(row,4,sourcesDict[param])
-row += 1
-param = 'WSPD'
-sheet.update_cell(row,1,'Wind Speed')
-sheet.update_cell(row,2,masterDict[param])
-sheet.update_cell(row,4,sourcesDict[param])
-row += 1
-param = 'GST'
-sheet.update_cell(row,1,'Wind Gust')
-sheet.update_cell(row,2,masterDict[param])
-sheet.update_cell(row,4,sourcesDict[param])
-row += 1
-param ='WVHT'
-sheet.update_cell(row,1,'Significant Wave Height')
-sheet.update_cell(row,2,masterDict[param])
-sheet.update_cell(row,4,sourcesDict[param])
-row += 1
-param = 'DPD'
-sheet.update_cell(row,1,'Dominant Wave Period')
-sheet.update_cell(row,2,masterDict[param])
-sheet.update_cell(row,4,sourcesDict[param])
-row += 1
-param = 'PRES'
-sheet.update_cell(row,1,'Atmospheric Pressure')
-sheet.update_cell(row,2,masterDict[param])
-sheet.update_cell(row,4,sourcesDict[param])
-row += 1
-param = 'ATMP'
-sheet.update_cell(row,1,'Air Temperature')
-sheet.update_cell(row,2,masterDict[param])
-sheet.update_cell(row,4,sourcesDict[param])
-row += 1
-param = 'WTMP'
-sheet.update_cell(row,1,'Water Temperature')
-sheet.update_cell(row,2,masterDict[param])
-sheet.update_cell(row,4,sourcesDict[param])
-row += 1
-param = 'VIS'
-sheet.update_cell(row,1,'Visibility at Sea')
-sheet.update_cell(row,2,masterDict[param])
-sheet.update_cell(row,4,sourcesDict[param])
-stamp = str(datetime.now())
-sheet.update_cell(STARTROW-1,4,stamp)
+    sheet.update(range_name=f"A{STARTROW}:D{STARTROW + len(dataRows) - 1}", values=dataRows)
+    sheet.update(range_name=f"D{STARTROW - 1}", values=[[str(datetime.now())]])
+    sheet.update(range_name=f"E{STARTROW}:E{STARTROW + 1}", values=[[masterDict['#STN']], ['Called by: penobscot3.py']])
+    logging.info("===== penobscot3.py completed successfully. =====")
 
-# Close db connection
-if conn.is_connected():
-    cursor.close()
-    conn.close()
+if __name__ == "__main__":
+    main()
