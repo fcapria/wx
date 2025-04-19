@@ -5,14 +5,13 @@ Created on Sat, Nov 2 13:34:09 2018
 Revised November 30, 2019 to update Google Sheet as cron job
 Revised December 27, 2019 to clean up display
 Revised January 25, 2020 to list the tides for the day lessen script frequency
+Refactored April 19, 2025
 
 Frank Capria
 """
-import urllib, json, time, pytz, gspread, requests
-# import html.parser, gspread, requests
+import json, time, logging, pytz, gspread, requests
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-# from time_string import am_pm
 from wx_conversions import round_f, am_pm, today_int
 from os import path
 
@@ -20,7 +19,7 @@ def convert2ticks(s):
     # Lifted from the web
     return time.mktime(datetime.strptime(s, "%Y-%m-%d %H:%M:%S").timetuple())
 
-def clear(row):
+def clear(sheet,row):
     col=1
     sheet.update_cell(row,col,' ')
     sheet.update_cell(row,col+1,' ')
@@ -35,7 +34,7 @@ def round_1(n):
     n = str(n)
     return n
 
-def get_row_data(di):
+def getRowData(di):
     tideType = di.get('type')
     if tideType == 'L':
         tideType = 'Low tide of '
@@ -43,7 +42,41 @@ def get_row_data(di):
         tideType = 'High tide of '
     tideHt = di.get('v') + ' ft'
     return (tideType + tideHt)
+
+def get_sheet() -> gspread.Worksheet:
+    scriptDir = path.dirname(path.abspath(__file__))
+    jsonPath = path.join(scriptDir, "wx_secret.json")
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     
+    creds = ServiceAccountCredentials.from_json_keyfile_name(jsonPath, scope)
+    client = gspread.authorize(creds)
+
+    try:
+        return client.open('wx04849').sheet1
+    except Exception as e:
+        raise RuntimeError(f"Failed to open sheet: {e}")
+    
+def filterTodayTides(rawTides: list) -> list:
+    today = today_int()
+    filtered = []
+
+    for tide in rawTides:
+        tideTime = datetime.strptime(tide["t"], "%Y-%m-%d %H:%M")
+        if int(tideTime.strftime('%Y%m%d')) == today:
+            filtered.append(tide)
+    
+    return filtered
+
+# BODY
+
+logging.basicConfig(
+    filename='wx04849.log',
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s:%(message)s'
+)
+
+logging.info("===== Starting today_tides.py =====")
+
 STARTROW = 29
     
 station = str(8415490) #-- Rockland, ME 
@@ -55,30 +88,26 @@ name = 'Frank.Capria'  # Leave quotes
 
 currentDate = datetime.today().strftime('%Y%m%d')
 values = []
-sets = []
 baseURL = 'https://tidesandcurrents.noaa.gov/api/'
 queries = 'datagetter?product=predictions'
 personalize ='&application=' + name +'&begin_date=' + currentDate + '&range=36&datum=MLLW&station='
 formats = '&time_zone=lst_ldt&units=english&interval=hilo&format=JSON'
 APIcall = baseURL + queries + personalize + station + formats
 
-tides = urllib.request.urlopen(APIcall).read()
-strResponse = tides.decode('utf-8')
-data = json.loads(strResponse)
+try:
+    response = requests.get(APIcall)
+    response.raise_for_status()  # Raises an HTTPError for bad status
+    data = response.json()
+    values = data.get('predictions', [])
+    logging.info(f"Fetched {len(values)} tide from NOAA API.")
+except requests.RequestException as e:
+    logging.error(f"Failed to fetch tide data: {e}")
+    values = []
+
 values = data.get('predictions')
-now = time.time()
 
-today = today_int()
-
-j = len(values)
-
-for i in range( j - 1, -1, -1): 
-    di = values[i]
-    tideEvent = values[i].get('t')
-    t = datetime.strptime(tideEvent, "%Y-%m-%d %H:%M")
-    tideDate = int(datetime.strftime(t, '%Y%m%d')) 
-    if tideDate != today:
-        values.pop(i)
+values = filterTodayTides(values)
+logging.info(f"{len(values)} tide events remain after filtering for today.")
         
 # Now the list is culled to only today's tides. 
 # It's possible there are only 3 tide events in a day
@@ -90,39 +119,42 @@ for i in range( j - 1, -1, -1):
 # https://towardsdatascience.com/accessing-google-spreadsheet-data-using-python-90a5bc214fd2
 # Create your own wx_secret.json file
 
-#Set absolute path
-filePath = path.abspath(__file__) # full path of this script
-dirPath = path.dirname(filePath) # full path of the directory 
-jsonFilePath = path.join(dirPath,'wx_secret.json') # absolute json file path    
-
+if not values:
+    logging.warning("No tide events found for today. Exiting without updating sheet.")
 
 if len(values) > 0: #Only run if we have data
-
-    scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name(jsonFilePath, scope)
-    client = gspread.authorize(creds)
-
     try:
-        sheet = client.open('wx04849').sheet1 
+        sheet = get_sheet()
+ 
     except:
         print ('Sheet did not open when called by daily_tides.py')
           
     for rowNum in range(STARTROW,STARTROW+4):
-        clear(rowNum)
+        clear(sheet,rowNum)
     
     dataRow = STARTROW
-    for i in range (0,len(values)):
-        col1 = get_row_data(values[i])
-        col2 = cleanTime(values[i].get('t'))
-        sheet.update_cell(dataRow,1,col1)
-        sheet.update_cell(dataRow,2,col2)
-        dataRow += 1
+    rows = []
+    for tide in values:
+        col1 = getRowData(tide)
+        col2 = cleanTime(tide.get('t'))
+        rows.append([col1, col2])
 
-    stamp = str(datetime.now())
-    sheet.update_cell(STARTROW,4,stamp)
-    sheet.update_cell(STARTROW,5,'Source: Rockland Sta 8415490')
-    sheet.update_cell(STARTROW+1,5,'Called by: today_tides.py')   
-    print('Tide data updated successfully')
+    logging.info(f"Updating Google Sheet with {len(rows)} tide rows at A{STARTROW}.")
 
+    sheet.update(
+        range_name=f"A{STARTROW}:B{STARTROW + len(rows) - 1}",
+        values=rows
+    )
 
+    stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    metadata = [
+        [stamp, "Source: Rockland Sta 8415490"],
+        ["", "Called by: today_tides.py"]
+    ]
 
+    sheet.update(
+        range_name=f"D{STARTROW}:E{STARTROW + 1}",
+        values=metadata
+    )
+    logging.info("Updated timestamp and metadata fields.")
+    logging.info("Script:today_tides completed")
