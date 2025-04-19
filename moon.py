@@ -30,104 +30,101 @@ def get_phase(year,month,day):
 
     return lunation
 
-def define_phase(lunation):
-    if lunation < 0.03 or lunation > 0.97:
-        phase = 'New'
-    elif lunation < 0.22:
-        phase = 'Waxing Cresent'
-    elif lunation < 0.28:
-        phase = 'First Quarter'
-    elif lunation < 0.47:
-        phase = 'Waxing Gibbous'
-    elif lunation < 0.53:
-        phase = 'Full'
-    elif lunation < 0.72:
-        phase = 'Waning Gibbous'
-    elif lunation < 0.78:
-        phase = 'Last Quarter'
+def definePhase(date):
+    ephDate = ephem.Date(date)
+
+    moonToday = ephem.Moon(ephDate)
+    illumToday = moonToday.phase
+
+    moonYesterday = ephem.Moon(ephDate - 1)  # One ephem day = 1 day
+    illumYesterday = moonYesterday.phase
+
+    waxing = illumToday > illumYesterday
+
+    if illumToday < 1.0:
+        return "New Moon"
+    elif illumToday < 49.0:
+        return "Waxing Crescent" if waxing else "Waning Crescent"
+    elif 49.0 <= illumToday <= 51.0:
+        return "First Quarter" if waxing else "Last Quarter"
+    elif illumToday < 98.0:
+        return "Waxing Gibbous" if waxing else "Waning Gibbous"
     else:
-        phase = 'Waning Cresent'
-    return phase
-
+        return "Full Moon"
+    
+def main():
 # BODY
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
 
-# Set log file location
-logPath = path.join(path.dirname(path.abspath(__file__)), 'wx04849.log')
+    # Set log file location
+    
+    logPath = path.join(path.dirname(path.abspath(__file__)), 'wx04849.log')
 
-logging.basicConfig(
-    filename=logPath,
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s'
-)
+    logging.basicConfig(
+        filename=logPath,
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(message)s'
+    )
+    logging.info(">>> TEST: Logging system initialized <<<")
 
-logging.info("===== Starting moon.py =====")
+    logging.info("===== Starting moon.py =====")
 
-today = datetime.datetime.now()
-yr = today.strftime('%Y')
-mo = today.strftime('%-m')
-dt = today.strftime('%-d')
-fullDt = yr + '-' + mo + '-' + dt
+    attempts = 0
+    maxAttempts = 4
+    response = None
+    
+    today = datetime.datetime.now()
+    fullDt = today.strftime('%Y-%-m-%-d')
+    yr, mo, dt = today.year, today.month, today.day
 
-base = 'https://api.ipgeolocation.io/astronomy?apiKey=' 
-# Define apiKey in moon_api.py and store in same directory as this script
-latLong = '&lat=44.308&long=-69.051'
-date = '&date=' + fullDt
-call = base + apiKey + latLong
+    base = 'https://api.ipgeolocation.io/astronomy?apiKey=' 
+    # Define apiKey in moon_api.py and store in same directory as this script
+    latLong = '&lat=44.308&long=-69.051'
+    date = '&date=' + fullDt
+    call = base + apiKey + latLong
 
-attempts = 0
-error = False
-while attempts < 4 and not error: 
-    attempts += 1
+    while attempts < maxAttempts: 
+        try:
+            response = requests.get(call, timeout=10)
+            response.raise_for_status()
+            logging.info(f"Successfully connected to ipgeolocation.com on attempt {attempts + 1}")
+            break
+        except requests.exceptions.RequestException:  
+            attempts += 1
+            logging.warning(f"Attempt {attempts} failed to reach ipgeolocation.com")
+            logging.exception(ex)
+            time.sleep(2 * attempts)  # backoff
+    else:
+        logging.error("All retry attempts to ipgeolocation failed")
+    
+    #Set absolute path
+    filePath = path.abspath(__file__) # full path of this script
+    dirPath = path.dirname(filePath) # full path of the directory 
+    jsonFilePath = path.join(dirPath,'wx_secret.json') # absolute json file path    
+
     try:
-        response = requests.get(call)
-    except requests.exceptions.RequestException as ex:  
-        error = True
-        logging.error("Failed to connect to ipgeolocation.com")
-        logging.exception(ex)
-
-#Set absolute path
-filePath = path.abspath(__file__) # full path of this script
-dirPath = path.dirname(filePath) # full path of the directory 
-jsonFilePath = path.join(dirPath,'wx_secret.json') # absolute json file path    
-
-if not error:
-    data = json.loads(response.text)
-    scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name(jsonFilePath, scope)
-    client = gspread.authorize(creds)
-    try:
+        data = json.loads(response.text)
+        scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+        creds = ServiceAccountCredentials.from_json_keyfile_name(jsonFilePath, scope)
         client = gspread.authorize(creds)
         sheet = client.open('wx04849').sheet1
-    except gspread.exceptions.APIError as ex:
-        print(ex)
-        logging.error("Google Sheet did not open in moon.py")
-        error = True
-if not error:      
-    row = 6
-    sheet.update_cell(row,1,'Moonrise')
-    time12 = am_pm(data['moonrise'])
-    sheet.update_cell(row,2,time12)
-    sheet.update_cell(row,4,str(datetime.datetime.now()))
-    sheet.update_cell(row,5,'Source:ipgeolocation.com')
-    row += 1
-    sheet.update_cell(row,1,'Moonset')
-    time12 = am_pm(data['moonset'])
-    sheet.update_cell(row,2,time12)
-    sheet.update_cell(row,5,'Called by: moon.py')
-    row += 1
-    sheet.update_cell(row,1,'Phase')
-    # Moon phase
-    yr = int(yr)
-    mo = int(mo)
-    dt = int(dt)
-    lunation = get_phase(yr,mo,dt)
-    phase = define_phase(lunation)
-    sheet.update_cell(row,2,phase)
+    except (json.JSONDecodeError, gspread.exceptions.APIError, Exception) as ex:
+        logging.exception("Failed to initialize Google Sheet or parse API data")
+    return  # exit early
+
+    try:
+        data = json.loads(response.text)
+        scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+        creds = ServiceAccountCredentials.from_json_keyfile_name(jsonFilePath, scope)
+        client = gspread.authorize(creds)
+        sheet = client.open('wx04849').sheet1
+    except (json.JSONDecodeError, gspread.exceptions.APIError, Exception) as ex:
+        logging.exception("Failed to initialize Google Sheet or parse API data")
+    return  # exit early
 
     logging.info("===== Finished moon.py successfully =====")
+    
 
-else:
-    logging.warning("===== moon.py completed with errors =====")
-
-
-
+if __name__ == "__main__":
+    main()
