@@ -1,44 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import datetime, requests, json, logging, pytz, gspread, ephem
-from oauth2client.service_account import ServiceAccountCredentials
+import requests, json, logging, pytz, gspread, ephem, sys, time
+from google.oauth2.service_account import Credentials
 from wx_conversions import am_pm
 from moon_api import apiKey
 from os import path
+from datetime import datetime
 
-def get_phase(year,month,day):
 
-    """Returns a floating-point number from 0-1. where 0=new, 0.5=full, 1=new"""
-    
-    # Ephem stores its date numbers as floating points, which the following uses
-    # to conveniently extract the percent time between one new moon and the next
-    # This corresponds (somewhat roughly) to the phase of the moon.
-    # Lifted from a tutorial. I would like to credit the author, but lost the link
-
-    # Use Year, Month, Day as arguments
-   
-    date = ephem.Date(datetime.date(year,month,day))
-
+def get_phase(year, month, day):
+    date = ephem.Date(datetime.date(year, month, day))
     nnm = ephem.next_new_moon(date)
     pnm = ephem.previous_new_moon(date)
-
-    lunation=(date-pnm)/(nnm-pnm)
-
-    # There is a ephem.Moon().phase() command, but it can't differentiate 
-    # between waxing and waning.
-
+    lunation = (date - pnm) / (nnm - pnm)
     return lunation
 
 def definePhase(date):
     ephDate = ephem.Date(date)
-
     moonToday = ephem.Moon(ephDate)
     illumToday = moonToday.phase
-
-    moonYesterday = ephem.Moon(ephDate - 1)  # One ephem day = 1 day
+    moonYesterday = ephem.Moon(ephDate - 1)
     illumYesterday = moonYesterday.phase
-
     waxing = illumToday > illumYesterday
 
     if illumToday < 1.0:
@@ -51,14 +34,11 @@ def definePhase(date):
         return "Waxing Gibbous" if waxing else "Waning Gibbous"
     else:
         return "Full Moon"
-    
+
 def main():
-# BODY
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
 
-    # Set log file location
-    
     logPath = path.join(path.dirname(path.abspath(__file__)), 'wx04849.log')
 
     logging.basicConfig(
@@ -66,65 +46,77 @@ def main():
         level=logging.INFO,
         format='%(asctime)s [%(levelname)s] %(message)s'
     )
-    logging.info(">>> TEST: Logging system initialized <<<")
-
     logging.info("===== Starting moon.py =====")
 
     attempts = 0
     maxAttempts = 4
     response = None
-    
-    today = datetime.datetime.now()
-    fullDt = today.strftime('%Y-%-m-%-d')
-    yr, mo, dt = today.year, today.month, today.day
 
-    base = 'https://api.ipgeolocation.io/astronomy?apiKey=' 
-    # Define apiKey in moon_api.py and store in same directory as this script
+    today = datetime.now()
+    fullDt = today.strftime('%Y-%m-%d')
+
+    base = 'https://api.ipgeolocation.io/astronomy?apiKey='
     latLong = '&lat=44.308&long=-69.051'
     date = '&date=' + fullDt
-    call = base + apiKey + latLong
+    call = base + apiKey + latLong + date
 
-    while attempts < maxAttempts: 
+    while attempts < maxAttempts:
         try:
             response = requests.get(call, timeout=10)
             response.raise_for_status()
             logging.info(f"Successfully connected to ipgeolocation.com on attempt {attempts + 1}")
             break
-        except requests.exceptions.RequestException:  
+        except requests.exceptions.RequestException as ex:
             attempts += 1
             logging.warning(f"Attempt {attempts} failed to reach ipgeolocation.com")
             logging.exception(ex)
-            time.sleep(2 * attempts)  # backoff
+            time.sleep(2 * attempts)
     else:
         logging.error("All retry attempts to ipgeolocation failed")
-    
-    #Set absolute path
-    filePath = path.abspath(__file__) # full path of this script
-    dirPath = path.dirname(filePath) # full path of the directory 
-    jsonFilePath = path.join(dirPath,'wx_secret.json') # absolute json file path    
+        sys.exit(1)
+
+    filePath = path.abspath(__file__)
+    dirPath = path.dirname(filePath)
+    jsonFilePath = path.join(dirPath, 'wx_secret.json')
 
     try:
         data = json.loads(response.text)
         scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name(jsonFilePath, scope)
+        creds = Credentials.from_service_account_file(jsonFilePath, scopes=scope)
         client = gspread.authorize(creds)
         sheet = client.open('wx04849').sheet1
     except (json.JSONDecodeError, gspread.exceptions.APIError, Exception) as ex:
         logging.exception("Failed to initialize Google Sheet or parse API data")
-    return  # exit early
+        sys.exit(1)
 
+    moonrise = data.get("moonrise", "Missing")
+    moonset = data.get("moonset", "Missing")
+
+    ephToday = ephem.Date(today)
+    moonToday = ephem.Moon()
+    moonToday.compute(ephToday)
+
+    phasePct = round(moonToday.phase, 1)
+    phaseName = definePhase(today)
+
+    row = 6
+    col = 2
+    stamp = today.strftime("%Y-%m-%d %H:%M:%S")
     try:
-        data = json.loads(response.text)
-        scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name(jsonFilePath, scope)
-        client = gspread.authorize(creds)
-        sheet = client.open('wx04849').sheet1
-    except (json.JSONDecodeError, gspread.exceptions.APIError, Exception) as ex:
-        logging.exception("Failed to initialize Google Sheet or parse API data")
-    return  # exit early
+        logging.info("attempting to stamp")
+        sheet.update(values=[[stamp]], range_name=f"D{row}")
+        logging.info("updated stamp")
+        sheet.update(values=[["Source: ipgeolocation.io"], ["Called by moon.py"]], range_name=f"E{row}:E{row + 1}")
+        sheet.update(
+            values=[[am_pm(moonrise)], [am_pm(moonset)], [f"{phasePct}%"], [phaseName]],
+            range_name=f"B{row}:B{row + 3}"
+        )
+        sheet.update(values=[["Moon.py was here"]], range_name="Y1")  # Switched from invalid Z1
+    except Exception as e:
+        logging.exception("Failed to update Google Sheet")
+        sys.exit(1)
 
     logging.info("===== Finished moon.py successfully =====")
-    
 
 if __name__ == "__main__":
     main()
