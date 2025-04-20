@@ -8,7 +8,6 @@ from moon_api import apiKey
 from os import path
 from datetime import datetime
 
-
 def get_phase(year, month, day):
     date = ephem.Date(datetime.date(year, month, day))
     nnm = ephem.next_new_moon(date)
