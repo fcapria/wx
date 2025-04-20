@@ -12,6 +12,9 @@ BUOYS = ['44033','MISM1','44032','44034']
 def initDict(station, headers):
     return {'#STN': station, **{key: 'MM' for key in headers[1:]}}
 
+def display_source(source):
+    return "" if source == "Penobscot Bay" else source
+
 def main():
     initLogging("penobscot3.py")
 
@@ -97,20 +100,48 @@ def main():
         sys.exit(1)
 
     dataRows = [
-    ['Wind Direction', masterDict['WDIR'], '', sourcesDict['WDIR']],
-    ['Wind Speed', masterDict['WSPD'], '', sourcesDict['WSPD']],
-    ['Wind Gust', masterDict['GST'], '', sourcesDict['GST']],
-    ['Significant Wave Height', masterDict['WVHT'], '', sourcesDict['WVHT']],
-    ['Dominant Wave Period', masterDict['DPD'], '', sourcesDict['DPD']],
-    ['Atmospheric Pressure', masterDict['PRES'], '', sourcesDict['PRES']],
-    ['Air Temperature', masterDict['ATMP'], '', sourcesDict['ATMP']],
-    ['Water Temperature', masterDict['WTMP'], '', sourcesDict['WTMP']],
-    ['Visibility at Sea', masterDict['VIS'], '', sourcesDict['VIS']]
-    ]
-
+            ['Wind Direction', masterDict['WDIR'], '', display_source(sourcesDict['WDIR'])],
+            ['Wind Speed', masterDict['WSPD'], '', display_source(sourcesDict['WSPD'])],
+            ['Wind Gust', masterDict['GST'], '', display_source(sourcesDict['GST'])],
+            ['Significant Wave Height', masterDict['WVHT'], '', display_source(sourcesDict['WVHT'])],
+            ['Dominant Wave Period', masterDict['DPD'], '', display_source(sourcesDict['DPD'])],
+            ['Atmospheric Pressure', masterDict['PRES'], '', display_source(sourcesDict['PRES'])],
+            ['Air Temperature', masterDict['ATMP'], '', display_source(sourcesDict['ATMP'])],
+            ['Water Temperature', masterDict['WTMP'], '', display_source(sourcesDict['WTMP'])],
+            ['Visibility at Sea', masterDict['VIS'], '', display_source(sourcesDict['VIS'])]
+        ]
+    """
+    # Original
     sheet.update(range_name=f"A{STARTROW}:D{STARTROW + len(dataRows) - 1}", values=dataRows)
     sheet.update(range_name=f"D{STARTROW - 1}", values=[[str(datetime.now())]])
-    sheet.update(range_name=f"E{STARTROW}:E{STARTROW + 1}", values=[[masterDict['#STN']], ['Called by: penobscot3.py']])
+    sheet.update(range_name=f"E{STARTROW + 1}", values=[["Called by: penobscot3.py"]])
+ 
+    # First update
+    sheet.update(range_name=f"A{STARTROW}:D{STARTROW + len(dataRows) - 1}", values=dataRows)      
+    sheet.update(range_name=f"D{STARTROW - 1}", values=[[str(datetime.now())]])                   
+    sheet.update(range_name=f"E{STARTROW}", values=[["Penobscot Bay buoy data unless noted"]])    
+    sheet.update(range_name=f"E{STARTROW + 1}", values=[["Called by: penobscot3.py"]])            
+    """
+    # Second update 
+    sheet.batch_update([
+        {
+            "range": f"A{STARTROW}:D{STARTROW + len(dataRows) - 1}",
+            "values": dataRows
+        },
+        {
+            "range": f"D{STARTROW - 1}",
+            "values": [[datetime.now().strftime("%Y-%m-%d %H:%M:%S")]]
+        },
+        {
+            "range": f"E{STARTROW}",
+            "values": [["Penobscot Bay buoy data unless noted"]]
+        },
+        {
+            "range": f"E{STARTROW + 1}",
+            "values": [["Called by: penobscot3.py"]]
+        }
+    ])
+
     logging.info("===== penobscot3.py completed successfully. =====")
 
 if __name__ == "__main__":
