@@ -131,17 +131,15 @@ def yesterday_int():
 def getSun(loc):  
     
     # Migrated April 25, 2020
-
     import requests, json
     base = 'https://api.sunrise-sunset.org/json?'
     time = '&formatted=0'
     url = base + loc + time
-    print(url)
     
     try:
         response = requests.get(url)
     except requests.exceptions.RequestException as ex:
-        print(ex)
+        logging.exception("Request to sunrise-sunset API failed")
     
     allData = json.loads(response.text)
     results = allData['results']   
