@@ -108,9 +108,9 @@ def main():
         logging.info("updated stamp")
         sheet.update(values=[["Source: ipgeolocation.io"], ["Called by moon.py"]], range_name=f"E{row}:E{row + 1}")
         sheet.update(
-            values=[[am_pm(moonrise)], [am_pm(moonset)], [f"{phasePct}%"], [phaseName]],
-            range_name=f"B{row}:B{row + 3}"
-        )
+            values=[[am_pm(moonrise)], [am_pm(moonset)], [phaseName]],
+            range_name=f"B{row}:B{row + 2}"
+)
         sheet.update(values=[["Moon.py was here"]], range_name="Y1")  # Switched from invalid Z1
     except Exception as e:
         logging.exception("Failed to update Google Sheet")
