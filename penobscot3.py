@@ -15,6 +15,10 @@ def initDict(station, headers):
 def display_source(source):
     return "" if source == "Penobscot Bay" else source
 
+def maybe_source(value: str, source: str) -> str:
+    """Return blank if value is 'Missing', otherwise the source label (if not default)."""
+    return " " if value == "Missing" else display_source(source)
+
 def main():
     initLogging("penobscot3.py")
 
@@ -100,29 +104,17 @@ def main():
         sys.exit(1)
 
     dataRows = [
-            ['Wind Direction', masterDict['WDIR'], '', display_source(sourcesDict['WDIR'])],
-            ['Wind Speed', masterDict['WSPD'], '', display_source(sourcesDict['WSPD'])],
-            ['Wind Gust', masterDict['GST'], '', display_source(sourcesDict['GST'])],
-            ['Significant Wave Height', masterDict['WVHT'], '', display_source(sourcesDict['WVHT'])],
-            ['Dominant Wave Period', masterDict['DPD'], '', display_source(sourcesDict['DPD'])],
-            ['Atmospheric Pressure', masterDict['PRES'], '', display_source(sourcesDict['PRES'])],
-            ['Air Temperature', masterDict['ATMP'], '', display_source(sourcesDict['ATMP'])],
-            ['Water Temperature', masterDict['WTMP'], '', display_source(sourcesDict['WTMP'])],
-            ['Visibility at Sea', masterDict['VIS'], '', display_source(sourcesDict['VIS'])]
-        ]
-    """
-    # Original
-    sheet.update(range_name=f"A{STARTROW}:D{STARTROW + len(dataRows) - 1}", values=dataRows)
-    sheet.update(range_name=f"D{STARTROW - 1}", values=[[str(datetime.now())]])
-    sheet.update(range_name=f"E{STARTROW + 1}", values=[["Called by: penobscot3.py"]])
- 
-    # First update
-    sheet.update(range_name=f"A{STARTROW}:D{STARTROW + len(dataRows) - 1}", values=dataRows)      
-    sheet.update(range_name=f"D{STARTROW - 1}", values=[[str(datetime.now())]])                   
-    sheet.update(range_name=f"E{STARTROW}", values=[["Penobscot Bay buoy data unless noted"]])    
-    sheet.update(range_name=f"E{STARTROW + 1}", values=[["Called by: penobscot3.py"]])            
-    """
-    # Second update 
+        ['Wind Direction',        masterDict['WDIR'], '', maybe_source(masterDict['WDIR'], sourcesDict['WDIR'])],
+        ['Wind Speed',            masterDict['WSPD'], '', maybe_source(masterDict['WSPD'], sourcesDict['WSPD'])],
+        ['Wind Gust',             masterDict['GST'],  '', maybe_source(masterDict['GST'], sourcesDict['GST'])],
+        ['Significant Wave Height', masterDict['WVHT'], '', maybe_source(masterDict['WVHT'], sourcesDict['WVHT'])],
+        ['Dominant Wave Period',  masterDict['DPD'],  '', maybe_source(masterDict['DPD'], sourcesDict['DPD'])],
+        ['Atmospheric Pressure',  masterDict['PRES'], '', maybe_source(masterDict['PRES'], sourcesDict['PRES'])],
+        ['Air Temperature',       masterDict['ATMP'], '', maybe_source(masterDict['ATMP'], sourcesDict['ATMP'])],
+        ['Water Temperature',     masterDict['WTMP'], '', maybe_source(masterDict['WTMP'], sourcesDict['WTMP'])],
+        ['Visibility at Sea',     masterDict['VIS'],  '', maybe_source(masterDict['VIS'], sourcesDict['VIS'])],
+    ]
+
     sheet.batch_update([
         {
             "range": f"A{STARTROW}:D{STARTROW + len(dataRows) - 1}",
