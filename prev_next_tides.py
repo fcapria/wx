@@ -119,6 +119,8 @@ def main():
     ]
 
     sheet.update(rows, "B2:D3")
+    stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    sheet.update([[stamp]], "B5")
     logging.info(f"Updated tides sheet: prev={rows[0]}, next={rows[1]}")
     logging.info("===== prev_next_tides.py complete =====")
 
