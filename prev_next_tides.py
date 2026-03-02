@@ -119,9 +119,9 @@ def main():
         [tide_type(next_event['type']), ft_to_ft_in(next_event['v']), fmt_time(next_event['t'])],
     ]
 
-    sheet.update(rows, "B2:D3")
+    sheet.update("B2:D3", rows)
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    sheet.update([[stamp]], "B5")
+    sheet.update("B5", [[stamp]])
     logging.info(f"Updated tides sheet: prev={rows[0]}, next={rows[1]}")
     logging.info("===== prev_next_tides.py complete =====")
 
