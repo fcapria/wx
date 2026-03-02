@@ -61,7 +61,7 @@ def fetch_tides() -> list:
     base_url = 'https://tidesandcurrents.noaa.gov/api/'
     url = (
         f"{base_url}datagetter?product=predictions"
-        f"&application={name}&begin_date={begin_date}&range=48"
+        f"&application={name}&begin_date={begin_date}&range=72"
         f"&datum=MLLW&station={station}"
         f"&time_zone=lst_ldt&units=english&interval=hilo&format=JSON"
     )
