@@ -18,7 +18,8 @@ Layout:
 Frank Capria
 """
 
-import logging, requests, gspread
+import logging, requests, gspread, warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="gspread")
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from os import path
