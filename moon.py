@@ -1,20 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests, json, logging, pytz, gspread, ephem, sys, time
+import requests, json, logging, gspread, ephem, sys, time
 from google.oauth2.service_account import Credentials
 from wx_conversions import am_pm
 from moon_api import apiKey
 from os import path
 from datetime import datetime
 
-
-def get_phase(year, month, day):
-    date = ephem.Date(datetime.date(year, month, day))
-    nnm = ephem.next_new_moon(date)
-    pnm = ephem.previous_new_moon(date)
-    lunation = (date - pnm) / (nnm - pnm)
-    return lunation
 
 def definePhase(date):
     ephDate = ephem.Date(date)
@@ -81,10 +74,10 @@ def main():
 
     try:
         data = json.loads(response.text)
-        scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+        scope = ['https://www.googleapis.com/auth/spreadsheets']
         creds = Credentials.from_service_account_file(jsonFilePath, scopes=scope)
         client = gspread.authorize(creds)
-        sheet = client.open('wx04849').sheet1
+        sheet = client.open_by_key('17H_sfh2vPotpC_5STXc7eMvWVJd3NaOwI4nJDuhGNtw').sheet1
     except (json.JSONDecodeError, gspread.exceptions.APIError, Exception) as ex:
         logging.exception("Failed to initialize Google Sheet or parse API data")
         sys.exit(1)
@@ -100,18 +93,16 @@ def main():
     phaseName = definePhase(today)
 
     row = 6
-    col = 2
     stamp = today.strftime("%Y-%m-%d %H:%M:%S")
     try:
         logging.info("attempting to stamp")
-        sheet.update(values=[[stamp]], range_name=f"D{row}")
+        sheet.batch_update([
+            {'range': f"D{row}", 'values': [[stamp]]},
+            {'range': f"E{row}:E{row + 1}", 'values': [["Source: ipgeolocation.io"], ["Called by moon.py"]]},
+            {'range': f"B{row}:B{row + 2}", 'values': [[am_pm(moonrise)], [am_pm(moonset)], [phaseName]]},
+            {'range': "Y1", 'values': [["Moon.py was here"]]},  # Switched from invalid Z1
+        ])
         logging.info("updated stamp")
-        sheet.update(values=[["Source: ipgeolocation.io"], ["Called by moon.py"]], range_name=f"E{row}:E{row + 1}")
-        sheet.update(
-            values=[[am_pm(moonrise)], [am_pm(moonset)], [phaseName]],
-            range_name=f"B{row}:B{row + 2}"
-)
-        sheet.update(values=[["Moon.py was here"]], range_name="Y1")  # Switched from invalid Z1
     except Exception as e:
         logging.exception("Failed to update Google Sheet")
         sys.exit(1)
