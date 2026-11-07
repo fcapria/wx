@@ -3,6 +3,7 @@
 
 # LIBRARIES
 import logging
+import sys
 import requests, json, gspread
 from datetime import datetime
 from dateutil.parser import parse
@@ -97,8 +98,9 @@ client = gspread.authorize(creds)
 try:
     book = client.open('wx04849')
     sheet = book.worksheet('Sheet1')
-except:
-    logging.error("Google Sheet did not open.")
+except Exception:
+    logging.exception("Google Sheet did not open.")
+    sys.exit(1)
 
 # Load config
 config_path = path.join(path.dirname(path.abspath(__file__)), 'sunlight_config.json')
