@@ -4,3 +4,4 @@ wx_secret.json
 moon_api.py
 open_api.py
 
+.venv/

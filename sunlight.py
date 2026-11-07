@@ -4,7 +4,6 @@
 # LIBRARIES
 import logging
 import requests, json, gspread
-from packaging import version
 from datetime import datetime
 from dateutil.parser import parse
 from pytz import timezone
@@ -131,14 +130,11 @@ try:
     stamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
-    if version.parse(gspread.__version__) >= version.parse("6.0.0"):
-        sheet.update([[str(todayDate)]], 'A1')
-        sheet.update([[sunrise], [sunset], [dayLength]],'B3:B5')
-        sheet.update([[stamp]],'D3')
-    else:
-        sheet.update('A1', [[str(todayDate)]])
-        sheet.update('B3:B5', [[sunrise], [sunset], [dayLength]])
-        sheet.update('D3', [[stamp]])
+    sheet.batch_update([
+        {'range': 'A1', 'values': [[str(todayDate)]]},
+        {'range': 'B3:B5', 'values': [[sunrise], [sunset], [dayLength]]},
+        {'range': 'D3', 'values': [[stamp]]},
+    ])
 
 
     logging.info("===== Finished sunlight.py =====")
