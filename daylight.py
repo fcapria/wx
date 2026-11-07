@@ -236,9 +236,3 @@ sheet.batch_update([
     {'range': 'B15:E15', 'values': [[meTomorrowRise, meTomorrowSet, meTomorrowLen, meTomDeltaStr]]},
     {'range': 'A16:A18', 'values': [[stamp], [start], [end]]},
 ], value_input_option='USER_ENTERED')
-
-# Close the Google session
-try: 
-    client.session.close()
-except:
-    print ('Session did not close properly')
