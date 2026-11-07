@@ -12,7 +12,7 @@ Frank Capria
 import json, time, logging, pytz, gspread, requests, sys
 from google.oauth2.service_account import Credentials
 from datetime import datetime
-from wx_conversions import round_f, am_pm, today_int
+from wx_conversions import am_pm, today_int
 from os import path
 
 def convert2ticks(s):
