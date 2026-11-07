@@ -9,8 +9,8 @@ Refactored April 19, 2025
 
 Frank Capria
 """
-import json, time, logging, pytz, gspread, requests
-from oauth2client.service_account import ServiceAccountCredentials
+import json, time, logging, pytz, gspread, requests, sys
+from google.oauth2.service_account import Credentials
 from datetime import datetime
 from wx_conversions import round_f, am_pm, today_int
 from os import path
@@ -18,11 +18,6 @@ from os import path
 def convert2ticks(s):
     # Lifted from the web
     return time.mktime(datetime.strptime(s, "%Y-%m-%d %H:%M:%S").timetuple())
-
-def clear(sheet,row):
-    col=1
-    sheet.update_cell(row,col,' ')
-    sheet.update_cell(row,col+1,' ')
 
 def cleanTime(string):
     temp = string.split(' ')
@@ -46,13 +41,13 @@ def getRowData(di):
 def get_sheet() -> gspread.Worksheet:
     scriptDir = path.dirname(path.abspath(__file__))
     jsonPath = path.join(scriptDir, "wx_secret.json")
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    
-    creds = ServiceAccountCredentials.from_json_keyfile_name(jsonPath, scope)
+    scope = ["https://www.googleapis.com/auth/spreadsheets"]
+
+    creds = Credentials.from_service_account_file(jsonPath, scopes=scope)
     client = gspread.authorize(creds)
 
     try:
-        return client.open('wx04849').sheet1
+        return client.open_by_key('17H_sfh2vPotpC_5STXc7eMvWVJd3NaOwI4nJDuhGNtw').sheet1
     except Exception as e:
         raise RuntimeError(f"Failed to open sheet: {e}")
     
@@ -95,7 +90,7 @@ def main():
     APIcall = baseURL + queries + personalize + station + formats
 
     try:
-        response = requests.get(APIcall)
+        response = requests.get(APIcall, timeout=10)
         response.raise_for_status()  # Raises an HTTPError for bad status
         data = response.json()
         values = data.get('predictions', [])
@@ -103,8 +98,6 @@ def main():
     except requests.RequestException as e:
         logging.error(f"Failed to fetch tide data: {e}")
         values = []
-
-    values = data.get('predictions')
 
     values = filterTodayTides(values)
     logging.info(f"{len(values)} tide events remain after filtering for today.")
@@ -126,12 +119,10 @@ def main():
         try:
             sheet = get_sheet()
     
-        except:
-            print ('Sheet did not open when called by daily_tides.py')
-            
-        for rowNum in range(STARTROW,STARTROW+4):
-            clear(sheet,rowNum)
-        
+        except Exception:
+            logging.exception("Sheet did not open when called by today_tides.py")
+            sys.exit(1)
+
         dataRow = STARTROW
         rows = []
         for tide in values:
@@ -141,10 +132,7 @@ def main():
 
         logging.info(f"Updating Google Sheet with {len(rows)} tide rows at A{STARTROW}.")
 
-        sheet.update(
-            range_name=f"A{STARTROW}:B{STARTROW + len(rows) - 1}",
-            values=rows
-        )
+        rows += [[' ', ' ']] * (4 - len(rows))
 
         stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         metadata = [
@@ -152,10 +140,10 @@ def main():
             ["", "Called by: today_tides.py"]
         ]
 
-        sheet.update(
-            range_name=f"D{STARTROW}:E{STARTROW + 1}",
-            values=metadata
-        )
+        sheet.batch_update([
+            {'range': f"A{STARTROW}:B{STARTROW + 3}", 'values': rows},
+            {'range': f"D{STARTROW}:E{STARTROW + 1}", 'values': metadata},
+        ])
         logging.info("Updated timestamp and metadata fields.")
         logging.info("Script:today_tides completed")
 
