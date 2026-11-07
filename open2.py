@@ -47,7 +47,7 @@ def main():
     jsonFilePath = path.join(dirPath, 'wx_secret.json')
 
     try:
-        openData = requests.get(openCall)
+        openData = requests.get(openCall, timeout=10)
         openData.raise_for_status()
         openJSON = openData.json()
         data = openJSON['current']
@@ -58,7 +58,7 @@ def main():
 
     try:
         client = gspread.service_account(filename=jsonFilePath)
-        sheet = client.open('wx04849').sheet1
+        sheet = client.open_by_key('17H_sfh2vPotpC_5STXc7eMvWVJd3NaOwI4nJDuhGNtw').sheet1
     except Exception:
         logging.exception("Google Sheet didn't open when called by open2.py")
         sys.exit(1)
@@ -86,16 +86,12 @@ def main():
         vis
     ]
 
-    row = 9
-    col = 2
     stamp = str(datetime.now())
-    sheet.update_cell(row, 4, stamp)
-    sheet.update_cell(row, 5, 'Source: Open Weather')
-    sheet.update_cell(row + 1, 5, 'Called by open2.py')
-
-    for value in weatherValues:
-        sheet.update_cell(row, col, value)
-        row += 1
+    sheet.batch_update([
+        {'range': 'B9:B17', 'values': [[v] for v in weatherValues]},
+        {'range': 'D9', 'values': [[stamp]]},
+        {'range': 'E9:E10', 'values': [['Source: Open Weather'], ['Called by open2.py']]},
+    ], value_input_option='USER_ENTERED')
 
     logging.info("===== open2.py completed successfully. =====")
 
