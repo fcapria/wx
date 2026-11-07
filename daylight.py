@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 # LIBRARIES
-import requests, json, calendar, gspread
+import requests, json, calendar, gspread, sys
 from datetime import datetime, timedelta
 from pytz import timezone
 import iso8601 as iso 
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 from os import path
 from dateutil.parser import isoparse
 
@@ -25,7 +25,7 @@ def solar(latitude,longitude,dt):
     suffix = '&formatted=0&date='
     url = base + loc + suffix + dt
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
     except requests.exceptions.RequestException as ex:
         print(ex)
     
@@ -93,18 +93,18 @@ dirPath = path.dirname(filePath) # full path of the directory
 jsonFilePath = path.join(dirPath,'wx_secret.json') # absolute json file path
 
 # Use stored credentials for client of the Google Drive API
-scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-creds = ServiceAccountCredentials.from_json_keyfile_name(jsonFilePath, scope)
+scope = ['https://www.googleapis.com/auth/spreadsheets']
+creds = Credentials.from_service_account_file(jsonFilePath, scopes=scope)
 client = gspread.authorize(creds)
 
 # Sheet shared with weatherman@weather04849.iam.gserviceaccount.com
 # Find the workbook by name and open the first sheet
 try:
-    book = client.open('wx01532')
+    book = client.open_by_key('148235JXAXqk7v_w4tBrxuP5E2vtGQLhwy_tkupwUs-M')
     sheet = book.worksheet('Sheet1')
-except:
-    print ('Google Sheet did not open.')
-    error = True
+except Exception as e:
+    print ('Google Sheet did not open.', e)
+    sys.exit(1)
 
 # Read cells containing lat and long
 try:
@@ -156,16 +156,6 @@ else:
     MALonger = False
 
 diffStr = daylength(abs(difference)) + ' more daylight'
-
-sunriseIso = data['sunrise']
-yesterdaySunriseIso = yesterdayData['sunrise']
-tomorrowSunriseIso = tomorrowData['sunrise']
-sunrise = eastern(sunriseIso)
-yesterdaySunrise = eastern(yesterdaySunriseIso)
-tomorrowSunrise = eastern(tomorrowSunriseIso)
-sunrise = ampm(sunrise.strftime('%H:%M:%S'))
-yesterdaySunrise = ampm(yesterdaySunrise.strftime('%H:%M:%S'))
-tomorrowSunrise = ampm(tomorrowSunrise.strftime('%H:%M:%S'))
 
 sunriseIso = data['sunrise']
 meSunriseIso = meData['sunrise']
@@ -227,53 +217,25 @@ tomorrowDelta = int(tomorrowSec - todaySec)
 meTomDelta = int(meTomorrowSec - meTodaySec)
 tomorrowDeltaStr = mmssdelta(tomorrowDelta)
 meTomDeltaStr = mmssdelta(meTomDelta)
-sheet.update_cell(3,3,' ')
-sheet.update_cell(11,3,' ')
-
-
-if MALonger:
-    sheet.update_cell(3,3,diffStr)
-else:
-    sheet.update_cell(11,3,diffStr)
-#sheet.update_cell(5,1,str(todayDate))
-#sheet.update_cell(13,1,str(todayDate))
-sheet.update_cell(5,2,sunrise)
-sheet.update_cell(13,2,meSunrise)
-sheet.update_cell(5,3,sunset)
-sheet.update_cell(13,3,meSunset)
-sheet.update_cell(5,4,dayLength)
-sheet.update_cell(13,4,meDayLen)
-#sheet.update_cell(6,1,str(yesterdayDate))
-#sheet.update_cell(14,1,str(yesterdayDate))
-sheet.update_cell(6,2,yesterdaySunrise)
-sheet.update_cell(14,2,meYesterdayRise)
-sheet.update_cell(6,3,yesterdaySunset)
-sheet.update_cell(14,3,meYesterdaySet)
-sheet.update_cell(6,4,yesterdayLength)
-sheet.update_cell(14,4,meYesterdayLen)
-sheet.update_cell(14,5,meYesDeltaStr)
-sheet.update_cell(6,5,yesterdayDeltaStr)
-#sheet.update_cell(7,1,str(tomorrowDate))
-#sheet.update_cell(15,1,str(tomorrowDate))
-sheet.update_cell(7,2,tomorrowSunrise)
-sheet.update_cell(15,2,meTomorrowRise)
-sheet.update_cell(7,3,tomorrowSunset)
-sheet.update_cell(15,3,meTomorrowSet)
-sheet.update_cell(7,4,tomorrowlength)
-sheet.update_cell(15,4,meTomorrowLen)
-sheet.update_cell(7,5,tomorrowDeltaStr)
-sheet.update_cell(15,5,meTomDeltaStr)
 
 # Add time stamp
-now = datetime.now() 
+now = datetime.now()
 stamp = "Updated " + now.strftime('%Y-%m-%d %H:%M')
-sheet.update_cell(16,1,stamp)
 start = "Started - " + beginning.strftime('%Y-%m-%d %H:%M:%S')
-
-sheet.update_cell(17,1,start)
 ending = datetime.now()
 end = "Ended - " + ending.strftime('%Y-%m-%d %H:%M:%S')
-sheet.update_cell(18,1,end)
+
+sheet.batch_update([
+    {'range': 'C3', 'values': [[diffStr if MALonger else ' ']]},
+    {'range': 'C11', 'values': [[' ' if MALonger else diffStr]]},
+    {'range': 'B5:D5', 'values': [[sunrise, sunset, dayLength]]},
+    {'range': 'B13:D13', 'values': [[meSunrise, meSunset, meDayLen]]},
+    {'range': 'B6:E6', 'values': [[yesterdaySunrise, yesterdaySunset, yesterdayLength, yesterdayDeltaStr]]},
+    {'range': 'B14:E14', 'values': [[meYesterdayRise, meYesterdaySet, meYesterdayLen, meYesDeltaStr]]},
+    {'range': 'B7:E7', 'values': [[tomorrowSunrise, tomorrowSunset, tomorrowlength, tomorrowDeltaStr]]},
+    {'range': 'B15:E15', 'values': [[meTomorrowRise, meTomorrowSet, meTomorrowLen, meTomDeltaStr]]},
+    {'range': 'A16:A18', 'values': [[stamp], [start], [end]]},
+], value_input_option='USER_ENTERED')
 
 # Close the Google session
 try: 
