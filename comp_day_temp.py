@@ -9,6 +9,7 @@ github.com/fcapria/wx
 """
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import gspread, logging, json, requests
 from os import path
 from wx_conversions import getSun
@@ -40,6 +41,10 @@ with open(nbroConfigPath) as f:
 meCoordStr = f"lat={meLat:.2f}&lng={meLon:.2f}"
 maCoordStr = f"lat={maLat:.2f}&lng={maLon:.2f}"
 
+apiDate = datetime.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d')
+meCoordStr += f"&date={apiDate}"
+maCoordStr += f"&date={apiDate}"
+
 # === Get daylight info ===
 resultsMe = getSun(meCoordStr)
 resultsMa = getSun(maCoordStr)
@@ -63,8 +68,8 @@ try:
     meCall = openwx + str(meLat) + '&lon=' + str(meLon) + units + excludes + key
     maCall = openwx + str(maLat) + '&lon=' + str(maLon) + units + excludes + key
 
-    meJSON = requests.get(meCall).json()
-    maJSON = requests.get(maCall).json()
+    meJSON = requests.get(meCall, timeout=10).json()
+    maJSON = requests.get(maCall, timeout=10).json()
 
     meTemp = int(round(meJSON['current']['temp'], 0))
     maTemp = int(round(maJSON['current']['temp'], 0))
@@ -91,32 +96,26 @@ creds = Credentials.from_service_account_file(jsonPath, scopes=scopes)
 client = gspread.authorize(creds)
 
 try:
-    sheet = client.open('wx04849').sheet1
+    sheet = client.open_by_key('17H_sfh2vPotpC_5STXc7eMvWVJd3NaOwI4nJDuhGNtw').sheet1
     now = datetime.now()
 
-    # Update daylight comparison (Row 34)
-    sheet.update(
-        range_name="A34:E34",
-        values=[[
+    # Update daylight comparison (Row 34) and temperature comparison (Row 35)
+    sheet.batch_update([
+        {'range': 'A34:E34', 'values': [[
             'Daylight in ME greater by' if meLonger else 'Daylight in MA greater by',
             difString,
             '',
             now.strftime("%Y-%m-%d %H:%M:%S"),
             'Uses OpenWeather and Sunrise-Sunset.org'
-        ]]
-    )
-
-    # Update temperature comparison (Row 35)
-    sheet.update(
-        range_name="A35:E35",
-        values=[[
+        ]]},
+        {'range': 'A35:E35', 'values': [[
             tempSummary,
             tempDiffStr,
             '',
             '',
             'Called by: comp_day_temp.py'
-        ]]
-    )
+        ]]},
+    ])
     logging.info("Updated temperature comparison")
 
 except gspread.exceptions.APIError as e:
