@@ -1,5 +1,5 @@
 import gspread, urllib.request, sys, logging
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 from datetime import datetime
 from wx_conversions import nm_to_mi, hpa_to_in, ms_to_mph      
 from wx_conversions import compass, m_to_ft, c_to_f         
@@ -27,7 +27,7 @@ def main():
     jsonFilePath = path.join(dirPath,'wx_secret.json')
 
     try:
-        with urllib.request.urlopen('https://www.ndbc.noaa.gov/data/latest_obs/latest_obs.txt') as f:
+        with urllib.request.urlopen('https://www.ndbc.noaa.gov/data/latest_obs/latest_obs.txt', timeout=10) as f:
             allData = f.read().decode("utf-8")
     except Exception as e:
         logging.exception("Failed to retrieve buoy data.")
@@ -95,10 +95,10 @@ def main():
             masterDict[key] = 'Missing'
 
     try:
-        scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name(jsonFilePath, scope)
+        scope = ['https://www.googleapis.com/auth/spreadsheets']
+        creds = Credentials.from_service_account_file(jsonFilePath, scopes=scope)
         client = gspread.authorize(creds)
-        sheet = client.open('wx04849').sheet1
+        sheet = client.open_by_key('17H_sfh2vPotpC_5STXc7eMvWVJd3NaOwI4nJDuhGNtw').sheet1
     except Exception as e:
         logging.exception("Google Sheet didn't open for penobscot3.py")
         sys.exit(1)
