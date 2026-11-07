@@ -6,37 +6,20 @@ import logging
 import sys
 import requests, json, gspread
 from datetime import datetime
-from dateutil.parser import parse
-from pytz import timezone
+from zoneinfo import ZoneInfo
 from google.oauth2.service_account import Credentials
 from os import path
 
 # FUNCTIONS
 
-def eastern(dt):
-    date_obj = parse(dt)
-    return date_obj.astimezone(timezone('America/New_York'))
-
-def ampm(time_string):
-    t = datetime.strptime(time_string, "%H:%M:%S")
-    return t.strftime("%I:%M:%S %p").lstrip("0")
+def eastern(isoStr):
+    return datetime.fromisoformat(isoStr).astimezone(ZoneInfo('America/New_York'))
 
 def daylength(seconds):
     hours, remainder = divmod(seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     durationStr = f"{hours} hours, {minutes} minutes, {seconds} seconds"
     return durationStr
-
-def mmssdelta(secs):
-    neg = False
-    if secs < 0:
-        neg = True
-        secs = secs * -1
-    mm, ss = divmod(secs, 60)
-    if neg:
-        mm = mm * -1
-    mmssStr = str(mm) + ' minutes, ' + str(ss) + ' seconds'
-    return mmssStr
 
 """
 Example queires to sunrise-sunset.org
@@ -71,17 +54,10 @@ def solar(lat, lon, dateStr):
 
 # INITIALIZATIONS
 
-# Define log file location (shared across scripts)
-log_path = path.join(path.dirname(path.abspath(__file__)), 'wx04849.log')
-
-logging.basicConfig(
-    filename=log_path,
-    level=logging.INFO,  # Use DEBUG if you want more detail
-    format='%(asctime)s [%(levelname)s] %(message)s'
-)
+from wx_util import initLogging
+initLogging("sunlight.py")
 
 # BODY
-logging.info("===== Starting sunlight.py =====")
 
 # use absolute path to access credentials
 filePath = path.abspath(__file__) # full path of this script
@@ -89,14 +65,14 @@ dirPath = path.dirname(filePath) # full path of the directory
 jsonFilePath = path.join(dirPath,'wx_secret.json') # absolute json file path
 
 # Use stored credentials for client of the Google Drive API
-scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+scope = ["https://www.googleapis.com/auth/spreadsheets"]
 creds = Credentials.from_service_account_file(jsonFilePath, scopes=scope)
 client = gspread.authorize(creds)
 
 # Sheet shared with weatherman@weather04849.iam.gserviceaccount.com
 # Find the workbook by name and open the first sheet
 try:
-    book = client.open('wx04849')
+    book = client.open_by_key('17H_sfh2vPotpC_5STXc7eMvWVJd3NaOwI4nJDuhGNtw')
     sheet = book.worksheet('Sheet1')
 except Exception:
     logging.exception("Google Sheet did not open.")
@@ -111,24 +87,16 @@ LAT = config['latitude']
 LON = config['longitude']
 
 # Get the dates
-todayDate = datetime.today().strftime('%B %d, %Y')
+nowEt = datetime.now(ZoneInfo('America/New_York'))
+todayDate = nowEt.strftime('%B %d, %Y')
+apiDate = nowEt.strftime('%Y-%m-%d')
 try:
-    try:
-        data = solar(LAT,LON,str(todayDate))
-    except:
-        logging.error("Failed to retrieve solar data.")
-        raise
+    data = solar(LAT, LON, apiDate)
 
-    sunriseIso = data['sunrise']
-    sunrise = eastern(sunriseIso)
-    sunrise = ampm(sunrise.strftime('%H:%M:%S'))
-
-    sunsetIso = data['sunset']
-    sunset = eastern(sunsetIso)
-    sunset = ampm(sunset.strftime('%H:%M:%S'))
+    sunrise = eastern(data['sunrise']).strftime('%-I:%M:%S %p')
+    sunset = eastern(data['sunset']).strftime('%-I:%M:%S %p')
     dayLength = daylength(data['day_length'])
 
-    todaySec = int(data['day_length'])
     stamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
@@ -142,4 +110,4 @@ try:
     logging.info("===== Finished sunlight.py =====")
 
 except Exception as e:
-    logging.exception("Script:sunlight2.py failed during execution.")
+    logging.exception("sunlight.py failed during execution.")
